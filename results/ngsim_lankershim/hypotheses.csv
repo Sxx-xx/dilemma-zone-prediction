@@ -1,0 +1,9 @@
+mapping,boundary,order,n_cross,red_frac_k0,best_k_s,red_frac_best
+A(087-090),end,coord,6358,0.208,3.0,0.2
+A(087-090),start,coord,6314,0.212,6.0,0.196
+A(087-090),start,lead,6332,0.254,12.0,0.175
+A(087-090),end,lead,6374,0.255,11.0,0.179
+B(088-091),end,lead,6298,0.259,11.0,0.248
+B(088-091),start,lead,6345,0.263,13.0,0.249
+B(088-091),start,coord,6329,0.268,13.0,0.264
+B(088-091),end,coord,6288,0.27,10.0,0.266

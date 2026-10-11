@@ -1,0 +1,60 @@
+{
+ "k=+0.0s": {
+  "n_events": 123,
+  "n_stop": 108,
+  "n_go": 15,
+  "by_dir": {
+   "NB": 94,
+   "SB": 29
+  },
+  "candidates": 154,
+  "short_history": 0,
+  "unresolved": 5,
+  "not_through_lane": 26
+ },
+ "k=-3.6s": {
+  "n_events": 102,
+  "n_stop": 89,
+  "n_go": 13,
+  "by_dir": {
+   "NB": 82,
+   "SB": 20
+  },
+  "candidates": 135,
+  "short_history": 4,
+  "unresolved": 6,
+  "not_through_lane": 23
+ },
+ "k=+5.0s": {
+  "n_events": 113,
+  "n_stop": 101,
+  "n_go": 12,
+  "by_dir": {
+   "NB": 87,
+   "SB": 26
+  },
+  "candidates": 149,
+  "short_history": 3,
+  "unresolved": 9,
+  "not_through_lane": 24
+ },
+ "int2_flat_k_range_s": [
+  -3.6,
+  5.0
+ ],
+ "int2_green_start": {
+  "n_leaders": 9,
+  "median_s": 4.07,
+  "p25_s": 3.32,
+  "p75_s": 4.8,
+  "min_s": 1.18,
+  "k_for_R_0p5_to_2s": [
+   -3.57,
+   -2.07
+  ],
+  "by_period": {
+   "0830am-0845am": 3.4,
+   "0845am-0900am": 4.07
+  }
+ }
+}

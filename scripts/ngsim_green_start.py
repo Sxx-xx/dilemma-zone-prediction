@@ -52,11 +52,9 @@ def onset_time(tt: np.ndarray, s: np.ndarray, base: float):
     return tt[j - 1] + (THRESH - y0) / (y1 - y0) * (tt[j] - tt[j - 1])
 
 
-def main():
-    os.makedirs(OUT, exist_ok=True)
-    t = ngsim.load_tracks(f"{RAW}/peachtree_trajectories.csv")
-    sig = ngsim.load_signals(f"{RAW}/signal_change")
-    stops = ngsim.fill_missing_stop_lines(ngsim.estimate_stop_lines(t, sig)).set_index(["int_id", "dir"])
+def find_leaders(t: pd.DataFrame, sig: pd.DataFrame, stops: pd.DataFrame) -> pd.DataFrame:
+    """Queue leaders at each logged green (see module docstring); one row per (cycle, lane)."""
+    stops = stops.set_index(["int_id", "dir"])
     by_pf = t.groupby(["period", "frame_id"]).indices
     tracks = t.groupby("track").indices
 
@@ -102,7 +100,15 @@ def main():
             jitter = np.ptp(s[: PRE[0] - PRE[1] + 1])           # position noise while standing
             rows.append(dict(period=c["period"], intersection=ngsim.INTERSECTIONS[i], dir=d, lane=lane,
                              G=G, track=trk, dist0=dist0, delta0=t0, jitter_m=jitter, moved_m=s[-1] - base))
-    lead = pd.DataFrame(rows)
+    return pd.DataFrame(rows)
+
+
+def main():
+    os.makedirs(OUT, exist_ok=True)
+    t = ngsim.load_tracks(f"{RAW}/peachtree_trajectories.csv")
+    sig = ngsim.load_signals(f"{RAW}/signal_change")
+    stops = ngsim.fill_missing_stop_lines(ngsim.estimate_stop_lines(t, sig))
+    lead = find_leaders(t, sig, stops)
     lead.to_csv(f"{OUT}/leaders.csv", index=False)
 
     ok = lead[(lead["moved_m"] > 3) & lead["delta0"].notna() & (lead["jitter_m"] < 0.15)]
