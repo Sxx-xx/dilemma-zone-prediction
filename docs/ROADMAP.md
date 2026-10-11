@@ -37,7 +37,7 @@ yellow-cycle 단위 paired cluster bootstrap 95% CI (규칙 대비 차이).
 - **τ 확장**: 황색 *이전* 시점(−0.5 s, SPaT로 황색 시작 예고 가능)에서의 예측 — C-ITS만의 장점.
 - **NGSIM 신호 정렬**: Peachtree 신호 로그-궤적 프레임 오프셋 k를 approach별로 추정해 불확실성 전파 (현재 k=0 본 실험, k=−1.5 s 민감도 분석).
 - **정지선**: Peachtree는 정지선이 데이터에 없음 → CAD(`Atlanta-Peachtree.dwg`)/정사영상에서 직접 추출해 추정값과 비교. 14th SB는 추정 근거 부족.
-- **Lankershim**: 지원 데이터 ZIP이 서버에서 잘려 있음(신호 타이밍 접근 불가) → data.transportation.gov 담당자에게 재업로드 요청 후 재검토.
+- **Lankershim**: data.transportation.gov의 지원 데이터 ZIP은 여전히 잘려 있음. Wayback Machine 사본(`Lankershim-Main-Data.zip`, `unzip -t` 통과)에서 신호 리포트(RSM, 주기별 split 1 s)를 확보함 → timing sheet PDF로 split 정의 · 위상 매핑을 확인한 뒤 황색 시작 시각을 만들 수 있는지 재검토. 출처는 [FINDINGS](FINDINGS.md) NGSIM 표와 README Data 절.
 
 ### C. 논문화
 - 데이터: SinD(중국, 드론) + NGSIM Peachtree(미국, 영상) → 국가·센서가 다른 cross-dataset 일반화(train SinD → test Peachtree)도 실험.

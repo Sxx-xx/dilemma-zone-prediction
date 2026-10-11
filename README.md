@@ -33,6 +33,13 @@ tests/            labeling / rule unit tests
   (→ `data/raw/ngsim/peachtree/peachtree_trajectories.csv`), and the signal-change text files from the
   "Peachtree-Street-Atlanta-GA.zip" attachment of dataset 8ect-6jqj
   (`peachtree-street-signal-timing/signal-timing/signal-change/Original Text files/*.txt` → `data/raw/ngsim/peachtree/signal_change/`).
+- **NGSIM Lankershim** (not used in experiments yet): the supporting-data ZIP on data.transportation.gov is
+  truncated on the server. An intact copy of `Lankershim-Main-Data.zip` (trajectories, signal timing, CAD) was taken
+  from the **Wayback Machine archive of the old NGSIM community site**, not from an official USDOT server:
+  `https://web.archive.org/web/20150324165048id_/http://ngsim-community.org/Lankershim-Main-Data.zip`
+  (capture 2015-03-24, fetched 2026-10-11, 375,226,084 bytes,
+  sha256 `d615aae87efe0b845e46254da34ebe07bfa1f4ebc93206730230a7a6fca7240c`, `unzip -t`: 122 entries OK)
+  → `data/raw/ngsim/lankershim/` (with `SOURCE.txt` and `unzip_t.log`).
 
 ## Setup / run
 ```bash
