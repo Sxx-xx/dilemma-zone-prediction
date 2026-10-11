@@ -16,7 +16,7 @@ yellow-cycle 단위 paired cluster bootstrap 95% CI (규칙 대비 차이).
 | 2. NGSIM 적용 가능성 + ①~④ 전체 비교 | 완료 (Peachtree) | `src/dzp/ngsim.py`, `results/ngsim_peachtree/` |
 | 3. SinD 전체 데이터로 본 실험 | **승인 대기** | — |
 | E. AI Hub 신호최적화 샘플 점검 | 완료 — 본 실험 부적합(SUMO 시뮬레이션 추정, 1 Hz) | [`docs/E_aihub_check.md`](E_aihub_check.md), `scripts/aihub_check.py` |
-| E2. CCTV 영상 궤적 추출 파일럿 | 완료 — 조건부 가능 (2 fps, 건너편 진입로 약 40 m까지 신뢰). 입력이 요청 데이터셋과 다름 | [`docs/E_cctv_pilot.md`](E_cctv_pilot.md), `scripts/cctv_pilot*.py` |
+| E2. CCTV 영상 궤적 추출 파일럿 | 완료 — 신호최적화 영상(2 fps): 조건부 가능 / 복합 데이터 샘플: 불가(연속 영상·신호 없음) | [`docs/E_cctv_pilot.md`](E_cctv_pilot.md), `scripts/cctv_pilot*.py`, `scripts/new_sample_check.py` |
 
 자세한 확인/추측 구분은 [`docs/FINDINGS.md`](FINDINGS.md), 단계별 공부 노트는 [`docs/notes/`](notes/).
 
