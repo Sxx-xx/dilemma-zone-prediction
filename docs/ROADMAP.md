@@ -37,7 +37,7 @@ yellow-cycle 단위 paired cluster bootstrap 95% CI (규칙 대비 차이).
 - **τ 확장**: 황색 *이전* 시점(−0.5 s, SPaT로 황색 시작 예고 가능)에서의 예측 — C-ITS만의 장점.
 - **NGSIM 신호 정렬**: Peachtree 신호 로그-궤적 프레임 오프셋 k를 approach별로 추정해 불확실성 전파 (현재 k=0 본 실험, k=−1.5 s 민감도 분석).
 - **정지선**: Peachtree는 정지선이 데이터에 없음 → CAD(`Atlanta-Peachtree.dwg`)/정사영상에서 직접 추출해 추정값과 비교. 14th SB는 추정 근거 부족.
-- **Lankershim**: Wayback 사본으로 신호(RSM)와 궤적을 확보함. split = 녹색만 → 황색 시작을 계산할 수 있으나, **int2(Main St, RSM089)만** 적신호 통과율 검정을 통과함(이벤트 123건, 정지 108 / 통과 15, 신호 시각 불확실성 약 ±4 s). 나머지 3곳은 교차로별 위상 순서·행 시각 정의를 시트 p.2–3에서 읽어 모형을 고쳐야 함. 091 시트 미확인, 정지선은 CAD(.dwg 변환 도구 필요)로 검증 필요. `scripts/lankershim_check.py` → `results/ngsim_lankershim/`.
+- **Lankershim**: Wayback 사본으로 신호(RSM)와 궤적을 확보함. split = 녹색만 → 황색 시작을 계산할 수 있음. **int2(Main St, RSM089)만 보조 데이터로 사용**함(이벤트 102–123건, 신호 시각 불확실성 약 ±4 s). 이 교차로에서는 세 오프셋 모두 규칙 > LR·MLP였다(FINDINGS NGSIM 절). **보류: 나머지 3곳(088·090·091)의 위상 모형 수정 — 신호 불확실성 ±4초, 통과 15건으로 이득 작음.** `scripts/lankershim_check.py`, `scripts/lankershim_eval.py` → `results/ngsim_lankershim/`.
 
 ### C. 논문화
 - 데이터: SinD(중국, 드론) + NGSIM Peachtree(미국, 영상) → 국가·센서가 다른 cross-dataset 일반화(train SinD → test Peachtree)도 실험.

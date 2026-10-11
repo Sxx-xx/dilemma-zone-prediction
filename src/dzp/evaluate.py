@@ -3,6 +3,8 @@
   * within-site: GroupKFold over yellow cycles (vehicles from the same cycle never straddle
     train/test -- they share the same signal event and often interact).
   * LOIO: leave-one-intersection-out (train on all other intersections, test on the held-out one).
+  * strat: StratifiedGroupKFold over yellow cycles (shuffled with `seed`) -- for small, imbalanced
+    single-site sets; repeat with several seeds.
 
 Positive class for precision/recall/F1 = STOP (label 0): missing a human driver's stop is the
 rear-end-risk error for a following AV. Macro-F1 is reported as the symmetric summary.
@@ -12,7 +14,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import GroupKFold, StratifiedGroupKFold
 
 from .models import all_models
 
@@ -46,7 +48,13 @@ def slice_at(seq: np.ndarray, onset_idx: int, tau: float, dt: float) -> np.ndarr
     return seq[:, : onset_idx + int(round(tau / dt)) + 1]
 
 
-def _splits(ev: pd.DataFrame, scheme: str, n_folds: int):
+def _splits(ev: pd.DataFrame, scheme: str, n_folds: int, seed: int = 0):
+    if scheme == "strat":
+        groups = ev["intersection"] + ":" + ev["cycle_id"].astype(str)
+        cv = StratifiedGroupKFold(n_folds, shuffle=True, random_state=seed)
+        for i, (tr, te) in enumerate(cv.split(ev, ev["label"].values, groups=groups)):
+            yield f"fold{i}", tr, te
+        return
     if scheme == "loio":
         for site in sorted(ev["intersection"].unique()):
             te = (ev["intersection"] == site).values
@@ -59,7 +67,7 @@ def _splits(ev: pd.DataFrame, scheme: str, n_folds: int):
 
 
 def run(ev: pd.DataFrame, seq: np.ndarray, onset_idx: int, dt: float, scheme: str = "within",
-        n_folds: int = 5, models=None) -> tuple[pd.DataFrame, pd.DataFrame]:
+        n_folds: int = 5, models=None, seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Returns (metrics, preds). metrics: per-(model, tau) on the pooled out-of-fold predictions,
     plus per-held-out-site rows for LOIO. preds: long table of out-of-fold predictions."""
     y = ev["label"].values.astype(int)
@@ -68,7 +76,7 @@ def run(ev: pd.DataFrame, seq: np.ndarray, onset_idx: int, dt: float, scheme: st
         s = slice_at(seq, onset_idx, tau, dt)
         for M in models or all_models():
             pred = np.full(len(y), -1)
-            for split, tr, te in _splits(ev, scheme, n_folds):
+            for split, tr, te in _splits(ev, scheme, n_folds, seed):
                 if len(np.unique(y[tr])) < 2:
                     continue  # cannot train a classifier on one class
                 m = M().fit(s[tr], y[tr])

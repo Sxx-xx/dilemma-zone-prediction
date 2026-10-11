@@ -1,0 +1,10 @@
+k_s,tau,ranking
+-3.6,0.0,rule_d/v<t_r > logreg > mlp
+-3.6,0.5,rule_d/v<t_r > logreg > mlp
+-3.6,1.0,rule_d/v<t_r > logreg > mlp
+0.0,0.0,rule_d/v<t_r > logreg > mlp
+0.0,0.5,rule_d/v<t_r > logreg > mlp
+0.0,1.0,rule_d/v<t_r > logreg > mlp
+5.0,0.0,rule_d/v<t_r > mlp > logreg
+5.0,0.5,rule_d/v<t_r > mlp > logreg
+5.0,1.0,rule_d/v<t_r > mlp > logreg
