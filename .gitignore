@@ -13,6 +13,3 @@ results/**/preds_*.csv
 # CCTV pilot outputs derived from AI Hub frames (no redistribution)
 results/cctv_pilot/local/
 
-# derived outputs of external candidate datasets (licence unconfirmed / not redistributed)
-results/fluid/
-results/waterloo/

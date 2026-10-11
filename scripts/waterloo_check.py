@@ -19,7 +19,7 @@ from dzp import events, sind, waterloo
 from dzp.geometry import project, turn_angle
 
 ROOT = "data/raw/waterloo"
-OUT = "results/waterloo"
+OUT = "data/raw/waterloo/results"   # gitignored: derived from a dataset with unconfirmed terms of use
 THROUGH_COLS = list(waterloo.THROUGH_LIGHT.values())
 
 

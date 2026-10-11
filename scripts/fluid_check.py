@@ -1,9 +1,14 @@
-"""FLUID (Xuancheng) TI intersection: signal-trajectory alignment (red-crossing invariant) and yellow-onset
-event counts with the SinD pipeline (dzp.events.extract_events, map stop lines).
+"""FLUID (Xuancheng): per-video signal check (red-crossing invariant) and yellow-onset events with the SinD
+pipeline (dzp.events.extract_events, map stop lines), on the approaches that pass scripts/fluid_visibility.py.
 
-Outputs results/fluid/: light_matrix.csv, alignment_scan.csv, events_shift*.csv, summary.json
+Steps
+  1. light group per approach: the vehicle light group that is least often red when the approach's through
+     vehicles cross (matrix written out; `direction` in the signal CSV is ambiguous in the README).
+  2. per video: red-crossing rate of through vehicles on the passing approaches at offset 0;
+     videos above RED_MAX are excluded as "signal record suspect".
+  3. events on the remaining videos, passing approaches only.
+Outputs (gitignored): data/raw/fluid/results/{light_matrix,video_check,events}.csv
 """
-import json
 import os
 import sys
 
@@ -14,82 +19,93 @@ import pandas as pd
 
 from dzp import events, fluid, sind
 
-ROOT = "data/raw/fluid/derived_data"
-SITE = "TI"
-OUT = "results/fluid"
-SHIFTS = (0.0, -1.5)   # s added to signal times (best red-crossing offset of videos 1-2 is about -1.5 s)
+BASE = "data/raw/fluid"
+OUT = f"{BASE}/results"
+RED_MAX = 0.08
+OPP = {"N": "S", "S": "N", "E": "W", "W": "E"}
 
 
-def crossings(rec):
+def passing_approaches():
+    v = pd.read_csv(f"{OUT}/visibility.csv")
+    v = v[v["passes"] & (v["through_crossings"] >= 30)]
+    return {s: set(g["approach"]) for s, g in v.groupby("site")}
+
+
+def through_crossings(rec):
     aps, cr = events.approach_crossings(rec)
     ent = rec.tracks.groupby("track_id")[["entry_direction", "exit_direction"]].first()
     cr = cr.join(ent, on="track_id")
     cr["approach"] = [aps[s].name() for s in cr["sid"]]
-    cr["through_EW"] = cr["entry_direction"].isin(["E", "W"]) & cr["exit_direction"].isin(["E", "W"]) & \
-        (cr["entry_direction"] != cr["exit_direction"])
-    return cr[~cr["right_turn"]]
+    cr["through"] = cr["exit_direction"] == cr["entry_direction"].map(OPP)
+    return aps, cr[~cr["right_turn"]]
 
 
-def red_rate(rec, cr, col, shift_s):
-    f = rec.lights["frame"].values + shift_s * fluid.FPS
-    idx = np.searchsorted(f, cr["frame"].values, side="right") - 1
-    st = np.where(idx < 0, -1, rec.lights[col].values[np.clip(idx, 0, None)])
-    ok = st >= 0
-    return ((st == sind.RED) & ok).sum() / max(ok.sum(), 1), int(ok.sum())
+def state_at(rec, col, frames):
+    idx = np.searchsorted(rec.lights["frame"].values, frames, side="right") - 1
+    return np.where(idx < 0, -1, rec.lights[col].values[np.clip(idx, 0, None)])
 
 
 def main():
-    os.makedirs(OUT, exist_ok=True)
-    vids = fluid.videos(ROOT)
-    recs = {v: fluid.load_recording(ROOT, SITE, v) for v in vids}
-    crs = {v: crossings(r) for v, r in recs.items()}
-
-    # 1) which light group controls which approach / movement (red rate at shift 0)
-    rows = []
-    for v, cr in crs.items():
-        cr = cr.assign(mv=cr["entry_direction"] + "->" + cr["exit_direction"])
-        for (ap, mv), g in cr.groupby(["approach", "mv"]):
-            for c in recs[v].light_cols:
-                r, n = red_rate(recs[v], g, c, 0.0)
-                rows.append(dict(video=v, approach=ap, mv=mv, light=c, n=n, red=r * n))
-    m = pd.DataFrame(rows).groupby(["approach", "mv", "light"])[["n", "red"]].sum()
-    m = (m["red"] / m["n"]).round(3).unstack("light").join(m["n"].groupby(level=[0, 1]).max())
-    m[m["n"] >= 10].to_csv(f"{OUT}/light_matrix.csv")
-
-    # 2) offset scan, E-W through traffic vs light_E_s (E_s = W_s = W_l timing)
-    scan = []
-    for sh in np.round(np.arange(-6, 6.01, 0.5), 1):
-        for v, cr in crs.items():
-            g = cr[cr["through_EW"]]
-            r, n = red_rate(recs[v], g, "light_E_s", sh)
-            rf, nf = red_rate(recs[v], g[g["speed"] >= 5], "light_E_s", sh)
-            scan.append(dict(shift_s=sh, video=v, n=n, red=r, n_fast=nf, red_fast=rf))
-    scan = pd.DataFrame(scan)
-    scan.to_csv(f"{OUT}/alignment_scan.csv", index=False)
-
-    # 3) yellow-onset events, SinD pipeline unchanged
-    summary = {"light_map_inferred": {}, "events": {}}
-    for sh in SHIFTS:
-        evs = []
-        for v in vids:
-            rec = fluid.load_recording(ROOT, SITE, v, shift_s=sh)
-            ev, seq, st = events.extract_events(rec)
-            ent = rec.tracks.groupby("track_id")[["entry_direction", "exit_direction"]].first()
-            ev = ev.join(ent, on="track_id")
-            ev["movement"] = ev["entry_direction"] + "->" + ev["exit_direction"]
-            evs.append(ev)
-            summary["light_map_inferred"][v] = {k: str(c) for k, c in st["light_map"].items()}
-            summary["events"].setdefault(f"shift{sh:+.1f}", {})[v] = {k: int(x) for k, x in st.items() if k != "light_map"}
-        ev = pd.concat(evs, ignore_index=True)
-        ev.to_csv(f"{OUT}/events_shift{sh:+.1f}.csv", index=False)
-        tab = ev.groupby(["recording", "approach", "movement"])["label"].agg(n="size", go="sum")
-        tab["stop"] = tab["n"] - tab["go"]
-        summary["events"][f"shift{sh:+.1f}"]["table"] = {" | ".join(k): v for k, v in tab.to_dict("index").items()}
-        summary["events"][f"shift{sh:+.1f}"]["total"] = dict(n=len(ev), stop=int((ev.label == 0).sum()), go=int(ev.label.sum()))
-        print(f"shift {sh:+.1f} s\n{tab.to_string()}\ntotal {len(ev)} stop {(ev.label == 0).sum()} go {ev.label.sum()}")
-    json.dump(summary, open(f"{OUT}/summary.json", "w"), indent=1, default=int)
-    print(m[m["n"] >= 10].to_string())
-    print(scan.pivot(index="shift_s", columns="video", values="red").round(3).iloc[::2].to_string())
+    keep = passing_approaches()
+    mat, vids, evs = [], [], []
+    for site, aps_ok in keep.items():
+        root = f"{BASE}/{site}/derived_data"
+        recs = {v: fluid.load_recording(root, site, v) for v in fluid.videos(root)}
+        crs = {v: through_crossings(r) for v, r in recs.items()}
+        # 1) light matrix over all videos of the site (through crossings of the passing approaches)
+        rows = []
+        for v, (aps, cr) in crs.items():
+            for ap, g in cr[cr["through"] & cr["approach"].isin(aps_ok)].groupby("approach"):
+                for c in recs[v].light_cols:
+                    st = state_at(recs[v], c, g["frame"].values)
+                    ok = st >= 0
+                    rows.append(dict(site=site, approach=ap, light=c, n=int(ok.sum()), red=int(((st == sind.RED) & ok).sum())))
+        m = pd.DataFrame(rows).groupby(["site", "approach", "light"])[["n", "red"]].sum().reset_index()
+        m["red_rate"] = m["red"] / m["n"].clip(lower=1)
+        mat.append(m)
+        # least-red light per approach; ties (groups with identical timing) broken in favour of the through '_s' light
+        m["is_thru"] = m["light"].str.endswith("_s")
+        best = m.sort_values(["approach", "red_rate", "is_thru"], ascending=[True, True, False]).groupby("approach").head(1)
+        lmap_site = best.set_index("approach")["light"].to_dict()
+        # 2) per-video red-crossing rate at offset 0
+        for v, (aps, cr) in crs.items():
+            g = cr[cr["through"] & cr["approach"].isin(aps_ok)]
+            n = red = 0
+            for ap, gg in g.groupby("approach"):
+                st = state_at(recs[v], lmap_site[ap], gg["frame"].values)
+                ok = st >= 0
+                n += ok.sum()
+                red += ((st == sind.RED) & ok).sum()
+            rate = red / max(n, 1)
+            vids.append(dict(site=site, video=v, through_cross=int(n), red_rate=round(rate, 3),
+                             excluded=bool(rate > RED_MAX), lights=str(lmap_site)))
+            if rate > RED_MAX:
+                continue
+            # 3) events, documented-by-data light map, passing approaches only
+            doc = {a.sid: lmap_site[a.name()] for a in aps if a.name() in lmap_site}
+            infer, events.infer_light_map = events.infer_light_map, (lambda _r, _c: doc)
+            try:
+                ev, seq, stats = events.extract_events(recs[v])
+            finally:
+                events.infer_light_map = infer
+            if len(ev):
+                ent = recs[v].tracks.groupby("track_id")[["entry_direction", "exit_direction"]].first()
+                ev = ev.join(ent, on="track_id")
+                ev["through"] = ev["exit_direction"] == ev["entry_direction"].map(OPP)
+                evs.append(ev.assign(site=site))
+            vids[-1].update({f"n_{k}": int(x) for k, x in stats.items() if k != "light_map"})
+    pd.concat(mat).to_csv(f"{OUT}/light_matrix.csv", index=False)
+    vc = pd.DataFrame(vids)
+    vc.to_csv(f"{OUT}/video_check.csv", index=False)
+    ev = pd.concat(evs, ignore_index=True)
+    ev.to_csv(f"{OUT}/events.csv", index=False)
+    print(pd.concat(mat).round(3).to_string())
+    print(vc.to_string())
+    tab = ev.groupby(["site", "recording", "approach"]).agg(n=("label", "size"), go=("label", "sum"),
+                                                          through_n=("through", "sum"))
+    tab["stop"] = tab["n"] - tab["go"]
+    print(tab.to_string())
+    print(ev.groupby("site").agg(n=("label", "size"), go=("label", "sum"), through_n=("through", "sum")).to_string())
 
 
 if __name__ == "__main__":
