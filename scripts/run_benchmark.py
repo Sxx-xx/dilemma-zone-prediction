@@ -188,7 +188,7 @@ def main():
             fa["ev"] = fa["ev"].map({q: i for i, q in enumerate(th)})
             F_o, S_o = at(fa, {L: s[th] for L, s in sa.items()}, 0.0, np.arange(len(e_o)))
         P = bench_eval.oof(models, F_o, S_o, e_o, "group")
-        b = bench_eval.bootstrap(e_o, P, None, args.n_boot)
+        b = bench_eval.bootstrap(e_o, P, None, args.n_boot, ref=ref)
         b = b.assign(offset_s=o, n_events=len(e_o), n_go=int(e_o["label"].sum()))
         for mname in ("macro_f1", "auroc"):
             r = b[b.metric == mname].copy()

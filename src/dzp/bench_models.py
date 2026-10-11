@@ -57,15 +57,17 @@ class RuleB:
 
 
 class _Tab:
+    cols = DVA
+
     def __init__(self, est):
         self.est = est
 
     def fit(self, F, S, y):
-        self.est.fit(F[DVA].values, y)
+        self.est.fit(F[self.cols].values, y)
         return self
 
     def proba(self, F, S):
-        return self.est.predict_proba(F[DVA].values)[:, 1]
+        return self.est.predict_proba(F[self.cols].values)[:, 1]
 
     score = proba
 
@@ -75,6 +77,13 @@ class LogRegDVA(_Tab):
 
     def __init__(self, **_):
         super().__init__(make_pipeline(StandardScaler(), LogisticRegression(class_weight="balanced", max_iter=1000)))
+
+
+class LogRegDV(LogRegDVA):
+    """Ablation: logistic regression without acceleration -- does the gain over rule A come from a?"""
+
+    name = "logreg_dv"
+    cols = ["d", "v"]
 
 
 class MLPDVA(_Tab):
@@ -163,7 +172,8 @@ class TransformerSeq(_Seq):
 
 
 def model_list(decel: float = 3.0, transformer: bool = True, n_seeds: int = 3):
-    ms = [(RuleA, {}), (RuleB, {"decel": decel}), (LogRegDVA, {}), (MLPDVA, {}), (LSTMSeq, {"n_seeds": n_seeds})]
+    ms = [(RuleA, {}), (RuleB, {"decel": decel}), (LogRegDVA, {}), (LogRegDV, {}), (MLPDVA, {}),
+          (LSTMSeq, {"n_seeds": n_seeds})]
     if transformer:
         ms.append((TransformerSeq, {"n_seeds": n_seeds}))
     return ms
