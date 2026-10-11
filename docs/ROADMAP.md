@@ -23,6 +23,7 @@ yellow-cycle 단위 paired cluster bootstrap 95% CI (규칙 대비 차이).
 ## 다음 단계
 
 ### A. SinD 전체 데이터 도착 시 (최우선)
+0. 평가 파이프라인은 준비됨: `scripts/run_benchmark.py --dataset sind --root <SinD 경로> --group intersection --out results/sind_bench --event-dir data/raw/sind/results/benchmark` (FLUID FI로 시험 완료, FINDINGS 'FLUID FI 벤치마크' 절). 규칙 A/B·LR·MLP·LSTM·Transformer, LOIO + 반복 층화 5-fold, 리드 타임, 신호 오프셋 민감도가 한 번에 나온다.
 1. `sind.SAMPLE_RECORDINGS`를 전체 녹화 목록으로 일반화 (도시/교차로별 디렉터리 스캔, 지도 매핑 테이블).
 2. 녹화마다 `scripts/sind_check_alignment.py` 실행 → 신호-궤적 정렬(red-crossing 비율)과 light→approach 매핑을 자동 검증.
    임계값(예: red-crossing > 8%) 넘는 녹화는 리포트 후 제외/수동 검토.

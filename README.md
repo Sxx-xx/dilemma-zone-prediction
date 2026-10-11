@@ -50,5 +50,9 @@ python3 -m venv .venv
 .venv/bin/python scripts/run_sind.py
 .venv/bin/python scripts/run_ngsim.py          # signal offset k = 0
 .venv/bin/python scripts/run_ngsim.py -15      # sensitivity: k = -1.5 s
+# dataset-agnostic benchmark (rules A/B, LR, MLP, LSTM, Transformer; see docs/FINDINGS.md)
+.venv/bin/python scripts/run_benchmark.py --dataset fluid --root data/raw/fluid/FI/derived_data --site FI \
+    --approaches W_approach,E_approach --light-map W_approach=light_E_s,E_approach=light_E_s \
+    --out results/fluid_fi --event-dir data/raw/fluid/results/benchmark_fi
 env -u PYTHONPATH .venv/bin/python -m pytest -q tests   # (unset PYTHONPATH if ROS is sourced)
 ```
