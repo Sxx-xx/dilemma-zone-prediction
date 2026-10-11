@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+# raw datasets are not redistributed (SinD: non-commercial license; NGSIM: large) -- see README
+data/raw/
+# large intermediate arrays / per-row predictions
+results/**/sequences.npz
+results/**/preds_*.csv
+
+# local dataset archives (licensed / too large for GitHub)
+*.zip

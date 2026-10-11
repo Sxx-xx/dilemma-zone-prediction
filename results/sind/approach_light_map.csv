@@ -1,0 +1,17 @@
+intersection,sid,approach,light,red_frac,n
+cc,0,W_approach,light_2,0.00641025641025641,164
+cc,1,N_approach,light_1,0.021739130434782608,276
+cc,2,E_approach,light_2,0.01556420233463035,270
+cc,3,S_approach,light_1,0.013605442176870748,294
+cqNR,0,S_approach,light_1,0.0,37
+cqNR,1,E_approach,light_2,0.0,31
+cqNR,2,W_approach,light_2,0.13333333333333333,30
+cqNR,3,N_approach,light_1,0.0,6
+tj,0,E_approach,light_2,0.044444444444444446,45
+tj,1,N_approach,light_1,0.10256410256410256,39
+tj,2,W_approach,light_2,0.017241379310344827,58
+tj,3,S_approach,light_1,0.022727272727272728,44
+xasl,0,N_approach,light_1,0.16,25
+xasl,1,E_approach,light_2,0.07317073170731707,82
+xasl,2,S_approach,light_1,0.10810810810810811,37
+xasl,3,W_approach,light_2,0.04854368932038835,103

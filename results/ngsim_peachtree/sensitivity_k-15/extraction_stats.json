@@ -1,0 +1,27 @@
+{
+ "candidates": 244,
+ "short_history": 7,
+ "unresolved": 6,
+ "not_through_lane": 35,
+ "n_events": 196,
+ "swap_red_frac_all": 0.42745098039215684,
+ "swap_red_frac_fast": 0.38715953307393,
+ "per_site": {
+  "10th": {
+   "n": 59,
+   "n_go": 33
+  },
+  "11th": {
+   "n": 44,
+   "n_go": 14
+  },
+  "12th": {
+   "n": 79,
+   "n_go": 35
+  },
+  "14th": {
+   "n": 14,
+   "n_go": 6
+  }
+ }
+}
