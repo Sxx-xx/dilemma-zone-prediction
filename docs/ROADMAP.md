@@ -15,6 +15,7 @@ yellow-cycle 단위 paired cluster bootstrap 95% CI (규칙 대비 차이).
 | 1. SinD 샘플 로더·정지선·라벨링 | 완료 | `src/dzp/{sind,lanelet_map,geometry,events}.py`, `results/sind/` |
 | 2. NGSIM 적용 가능성 + ①~④ 전체 비교 | 완료 (Peachtree) | `src/dzp/ngsim.py`, `results/ngsim_peachtree/` |
 | 3. SinD 전체 데이터로 본 실험 | **승인 대기** | — |
+| E. AI Hub 신호최적화 샘플 점검 | 완료 — 본 실험 부적합(SUMO 시뮬레이션 추정, 1 Hz) | [`docs/E_aihub_check.md`](E_aihub_check.md), `scripts/aihub_check.py` |
 
 자세한 확인/추측 구분은 [`docs/FINDINGS.md`](FINDINGS.md), 단계별 공부 노트는 [`docs/notes/`](notes/).
 
