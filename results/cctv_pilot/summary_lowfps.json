@@ -1,0 +1,44 @@
+{
+  "tag": "lowfps",
+  "n_frames": 600,
+  "ids": 408,
+  "boxes_per_frame_mean": 28.6,
+  "track_len_frames": {
+    "count": 408.0,
+    "mean": 42.1,
+    "std": 50.4,
+    "min": 1.0,
+    "25%": 11.0,
+    "50%": 22.0,
+    "75%": 55.0,
+    "max": 277.0
+  },
+  "short_tracks_le3": 19,
+  "suspected_id_switches": 10,
+  "far_stopline_crossings_same_id": 94,
+  "crossing_tracks_frames_upstream_median": 49.5,
+  "range": {
+    "camera_height_m_from_lane_width": [
+      7.2,
+      8.4
+    ],
+    "queue_pairs_used": 130,
+    "K_range": [
+      7221.1,
+      8332.1
+    ],
+    "stopline_dist_from_camera_m": [
+      23.0,
+      26.5
+    ],
+    "roi_box_top_upstream_of_stopline_m": [
+      33.9,
+      39.1
+    ],
+    "y_far_p5": 139.4,
+    "far_detection_upstream_of_stopline_m": [
+      94.7,
+      109.3
+    ]
+  }
+}

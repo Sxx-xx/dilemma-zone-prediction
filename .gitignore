@@ -9,3 +9,6 @@ results/**/preds_*.csv
 
 # local dataset archives (licensed / too large for GitHub)
 *.zip
+
+# CCTV pilot outputs derived from AI Hub frames (no redistribution)
+results/cctv_pilot/local/

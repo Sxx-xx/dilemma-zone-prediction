@@ -1,0 +1,44 @@
+{
+  "tag": "base",
+  "n_frames": 600,
+  "ids": 539,
+  "boxes_per_frame_mean": 26.2,
+  "track_len_frames": {
+    "count": 539.0,
+    "mean": 29.2,
+    "std": 42.8,
+    "min": 1.0,
+    "25%": 6.5,
+    "50%": 13.0,
+    "75%": 30.5,
+    "max": 297.0
+  },
+  "short_tracks_le3": 63,
+  "suspected_id_switches": 57,
+  "far_stopline_crossings_same_id": 73,
+  "crossing_tracks_frames_upstream_median": 47.0,
+  "range": {
+    "camera_height_m_from_lane_width": [
+      7.2,
+      8.4
+    ],
+    "queue_pairs_used": 129,
+    "K_range": [
+      7196.9,
+      8304.1
+    ],
+    "stopline_dist_from_camera_m": [
+      22.9,
+      26.4
+    ],
+    "roi_box_top_upstream_of_stopline_m": [
+      33.7,
+      38.9
+    ],
+    "y_far_p5": 139.3,
+    "far_detection_upstream_of_stopline_m": [
+      94.6,
+      109.1
+    ]
+  }
+}
