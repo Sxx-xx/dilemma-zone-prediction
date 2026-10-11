@@ -18,6 +18,7 @@ from sklearn.preprocessing import StandardScaler
 
 torch.set_num_threads(4)
 DVA = ["d", "v", "a"]
+LEAD = ["ldr_gap", "ldr_dv", "ldr_a"]          # followers only (features.build ldr_* columns)
 
 
 class RuleA:
@@ -92,6 +93,30 @@ class MLPDVA(_Tab):
     def __init__(self, seed: int = 0, **_):
         super().__init__(make_pipeline(StandardScaler(), MLPClassifier(hidden_layer_sizes=(32, 16), alpha=1e-2,
                                                                        max_iter=3000, random_state=seed)))
+
+
+class LogRegLead(LogRegDVA):
+    """Followers: (d, v, a) + leader gap, relative speed, leader acceleration."""
+
+    name = "logreg_dva+lead"
+    cols = DVA + LEAD
+
+
+class LogRegLeadOracle(LogRegDVA):
+    """As LogRegLead plus the leader's own stop/go outcome -- assumes the leader's behaviour is known."""
+
+    name = "logreg_dva+lead+ldr_label[oracle]"
+    cols = DVA + LEAD + ["ldr_label"]
+
+
+class MLPLead(MLPDVA):
+    name = "mlp_dva+lead"
+    cols = DVA + LEAD
+
+
+class MLPLeadOracle(MLPDVA):
+    name = "mlp_dva+lead+ldr_label[oracle]"
+    cols = DVA + LEAD + ["ldr_label"]
 
 
 class _LSTMNet(torch.nn.Module):

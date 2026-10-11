@@ -1,0 +1,5 @@
+leader,follower,n,share_of_pairs
+leader_go,follower_go,9,0.14285714285714285
+leader_go,follower_stop,21,0.3333333333333333
+leader_stop,follower_go,0,0.0
+leader_stop,follower_stop,33,0.5238095238095238

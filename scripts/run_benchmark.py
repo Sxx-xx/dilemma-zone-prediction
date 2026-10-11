@@ -8,6 +8,7 @@ SinD (when the full data arrives; group = recording, or --group intersection for
   .venv/bin/python scripts/run_benchmark.py --dataset sind --root data/raw/sind --out results/sind_bench \
       --event-dir data/raw/sind/results/benchmark --group intersection
 
+--split leader|follower evaluates only platoon leaders / followers at yellow onset (default all).
 Outputs: --out (aggregates + figures, committable): metrics.csv, leadtime.csv, offsets.csv, counts.json, fig_*.png
          --event-dir (per-event rows, keep out of git): events_through.csv, events_turning.csv, features_*.csv
 """
@@ -92,6 +93,19 @@ def extract(args, offset_s):
     return ev, feat, seqs
 
 
+def through(ev_all, feat_all, seq_all, split="all"):
+    """Through events (renumbered 0..N-1), optionally only platoon leaders / followers at yellow onset
+    (features.build: leader = no unpassed motor vehicle ahead in the same lane)."""
+    keep = ev_all["movement"].values == "through"
+    if split != "all":
+        f0 = feat_all[feat_all["lead_s"] == 0.0].set_index("ev")["ldr_id"].reindex(np.arange(len(ev_all))).values
+        keep &= (f0 < 0) if split == "leader" else (f0 >= 0)
+    sel = np.where(keep)[0]
+    feat = feat_all[feat_all["ev"].isin(sel)].copy()
+    feat["ev"] = feat["ev"].map({o: i for i, o in enumerate(sel)})
+    return sel, ev_all.iloc[sel].reset_index(drop=True), feat, {L: s[sel] for L, s in seq_all.items()}
+
+
 def at(feat, seqs, L, idx):
     F = feat[feat["lead_s"] == L].set_index("ev").loc[idx].reset_index(drop=True)
     return F, seqs[L][idx]
@@ -118,6 +132,8 @@ def main():
     ap.add_argument("--n-boot", type=int, default=1000)
     ap.add_argument("--n-seeds", type=int, default=3)
     ap.add_argument("--no-transformer", action="store_true")
+    ap.add_argument("--split", default="all", choices=["all", "leader", "follower"],
+                    help="evaluate all through events, or only platoon leaders / followers at yellow onset")
     args = ap.parse_args()
     args.leads = [float(x) for x in args.leads.split(",")]
     if 0.0 not in args.leads:
@@ -131,21 +147,18 @@ def main():
 
     # ---- events at offset 0; through movements only for the evaluation
     ev_all, feat_all, seq_all = extract(args, 0.0)
-    thr = np.where(ev_all["movement"].values == "through")[0]
-    ev_all.iloc[np.setdiff1d(np.arange(len(ev_all)), thr)].to_csv(f"{args.event_dir}/events_turning.csv", index=False)
-    ev = ev_all.iloc[thr].reset_index(drop=True)
+    turning = np.where(ev_all["movement"].values != "through")[0]
+    ev_all.iloc[turning].to_csv(f"{args.event_dir}/events_turning.csv", index=False)
+    _, ev, feat, seqs = through(ev_all, feat_all, seq_all, args.split)
     ev.to_csv(f"{args.event_dir}/events_through.csv", index=False)
-    feat = feat_all[feat_all["ev"].isin(thr)].copy()
-    feat["ev"] = feat["ev"].map({o: i for i, o in enumerate(thr)})
     feat.to_csv(f"{args.event_dir}/features_through.csv", index=False)
-    seqs = {L: s[thr] for L, s in seq_all.items()}
     np.savez_compressed(f"{args.event_dir}/sequences_through.npz", **{f"lead{L:+.1f}": s for L, s in seqs.items()})
     idx = np.arange(len(ev))
     F0, S0 = at(feat, seqs, 0.0, idx)
     dz = (F0["tt"].values >= dz_lo) & (F0["tt"].values <= dz_hi)
     y = ev["label"].values
-    counts = dict(events_all=len(ev_all), through=len(ev), through_stop=int((y == 0).sum()), through_go=int(y.sum()),
-                  turning=int(len(ev_all) - len(ev)), groups=int(ev["group"].nunique()), cycles=int(len(np.unique(bench_eval.cycles(ev)))),
+    counts = dict(split=args.split, events_all=len(ev_all), through=len(ev), through_stop=int((y == 0).sum()), through_go=int(y.sum()),
+                  turning=int(len(turning)), groups=int(ev["group"].nunique()), cycles=int(len(np.unique(bench_eval.cycles(ev)))),
                   dz_band=[dz_lo, dz_hi], dz_n=int(dz.sum()), dz_go=int(y[dz].sum()),
                   per_group=ev.groupby("group")["label"].agg(n="size", go="sum").to_dict("index"),
                   lead_padded={f"{L:+.1f}": int((feat[feat.lead_s == L]["pad"] > 0).sum()) for L in args.leads},
@@ -182,11 +195,8 @@ def main():
             e_o, F_o, S_o = ev, F0, S0
         else:
             ea, fa, sa = extract(args, o)
-            th = np.where(ea["movement"].values == "through")[0]
-            e_o = ea.iloc[th].reset_index(drop=True)
-            fa = fa[fa["ev"].isin(th)].copy()
-            fa["ev"] = fa["ev"].map({q: i for i, q in enumerate(th)})
-            F_o, S_o = at(fa, {L: s[th] for L, s in sa.items()}, 0.0, np.arange(len(e_o)))
+            _, e_o, fa, sa = through(ea, fa, sa, args.split)
+            F_o, S_o = at(fa, sa, 0.0, np.arange(len(e_o)))
         P = bench_eval.oof(models, F_o, S_o, e_o, "group")
         b = bench_eval.bootstrap(e_o, P, None, args.n_boot, ref=ref)
         b = b.assign(offset_s=o, n_events=len(e_o), n_go=int(e_o["label"].sum()))
