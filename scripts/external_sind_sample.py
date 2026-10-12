@@ -72,6 +72,28 @@ def screen(rec):
     return red / max(n, 1), n, pd.DataFrame(rows)
 
 
+def sind_events(sind_root):
+    """Screening tables and all SinD through events at onset with leader / selection flags: (ev, feat, F, S, vis, rows)."""
+    vis, rec_rows = [], []
+    for rec in sind.load_all(sind_root):
+        rate, n, v = screen(rec)
+        vis.append(v)
+        rec_rows.append(dict(recording=rec.name, intersection=rec.intersection, through_crossings=n, red_rate=rate,
+                             sync_pass=rate <= RED_MAX, approaches_pass=",".join(v.loc[v.passes, "approach"])))
+    vis = pd.concat(vis, ignore_index=True)
+    bargs = SimpleNamespace(dataset="sind", root=sind_root, group="recording", leads=[0.0], light_map="",
+                            approaches="", site="", exclude="")
+    ev_all, feat_all, seq_all = extract(bargs, 0.0)
+    _, ev, feat, seqs = through(ev_all, feat_all, seq_all, "all")
+    F, S = at(feat, seqs, 0.0, np.arange(len(ev)))
+    ev["leader"] = F["ldr_id"].values < 0
+    ok_ap = set(map(tuple, vis.loc[vis.passes, ["recording", "approach"]].values))
+    ok_rec = {r["recording"] for r in rec_rows if r["sync_pass"]}
+    ev["approach_pass"] = [(g, a) in ok_ap for g, a in zip(ev["group"], ev["approach"])]
+    ev["selected"] = ev["approach_pass"] & ev["group"].isin(ok_rec)
+    return ev, feat, F, S, vis, rec_rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sind-root", default="data/raw/sind")
@@ -85,24 +107,8 @@ def main():
     os.makedirs(args.event_dir, exist_ok=True)
 
     # ---- 1. screening + events per recording
-    vis, rec_rows = [], []
-    for rec in sind.load_all(args.sind_root):
-        rate, n, v = screen(rec)
-        vis.append(v)
-        rec_rows.append(dict(recording=rec.name, intersection=rec.intersection, through_crossings=n, red_rate=rate,
-                             sync_pass=rate <= RED_MAX, approaches_pass=",".join(v.loc[v.passes, "approach"])))
-    vis = pd.concat(vis, ignore_index=True)
+    ev, feat, F, S, vis, rec_rows = sind_events(args.sind_root)
     vis.to_csv(f"{args.out}/visibility.csv", index=False)
-    bargs = SimpleNamespace(dataset="sind", root=args.sind_root, group="recording", leads=[0.0], light_map="",
-                            approaches="", site="", exclude="")
-    ev_all, feat_all, seq_all = extract(bargs, 0.0)
-    _, ev, feat, seqs = through(ev_all, feat_all, seq_all, "all")
-    F, S = at(feat, seqs, 0.0, np.arange(len(ev)))
-    ev["leader"] = F["ldr_id"].values < 0
-    ok_ap = set(map(tuple, vis.loc[vis.passes, ["recording", "approach"]].values))
-    ok_rec = {r["recording"] for r in rec_rows if r["sync_pass"]}
-    ev["approach_pass"] = [(g, a) in ok_ap for g, a in zip(ev["group"], ev["approach"])]
-    ev["selected"] = ev["approach_pass"] & ev["group"].isin(ok_rec)
     ev.to_csv(f"{args.event_dir}/events_through.csv", index=False)
     feat.to_csv(f"{args.event_dir}/features_through.csv", index=False)
     for r in rec_rows:
