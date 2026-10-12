@@ -13,3 +13,6 @@ results/**/preds_*.csv
 # CCTV pilot outputs derived from AI Hub frames (no redistribution)
 results/cctv_pilot/local/
 
+
+# paper drafts (not public)
+논문초안*.pdf
