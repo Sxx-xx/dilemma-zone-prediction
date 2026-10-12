@@ -73,7 +73,7 @@ python3 -m venv .venv
 FI="--dataset fluid --root data/raw/fluid/FI/derived_data --site FI \
     --approaches W_approach,E_approach --light-map W_approach=light_E_s,E_approach=light_E_s"
 .venv/bin/python scripts/run_benchmark.py $FI --out results/fluid_fi --event-dir data/raw/fluid/results/benchmark_fi
-.venv/bin/python scripts/run_benchmark.py $FI --split leader --out results/fluid_fi/leader_follower/leader \
+.venv/bin/python scripts/run_benchmark.py $FI --split leader --schemes group --out results/fluid_fi/leader_follower/leader \
     --event-dir data/raw/fluid/results/benchmark_fi_leader
 .venv/bin/python scripts/leader_follower.py $FI --out results/fluid_fi/leader_follower
 env -u PYTHONPATH .venv/bin/python -m pytest -q tests   # (unset PYTHONPATH if ROS is sourced)
