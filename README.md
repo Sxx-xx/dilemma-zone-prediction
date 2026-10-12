@@ -1,4 +1,4 @@
-# dilemma-zone-prediction
+# Predicting Stop-or-Go Decisions of the Preceding Human-Driven Vehicle at Yellow Onset Using Signal Information: A Comparison of Kinematic Rules and Learned Models
 
 Can an automated vehicle that receives C-ITS **SPaT** (signal phase and timing) predict whether the
 **human-driven vehicles around it** will stop or go at yellow onset — and does a sequence model (LSTM)
