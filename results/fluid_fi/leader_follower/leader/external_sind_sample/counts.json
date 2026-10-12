@@ -1,0 +1,28 @@
+{
+ "train": "FLUID FI leaders",
+ "n_train": 88,
+ "n_train_go": 55,
+ "n_test": 29,
+ "n_test_go": 23,
+ "test_per_recording": {
+  "Changchun/changchun_pudong_507_009": {
+   "n": 29,
+   "go": 23
+  }
+ },
+ "t_r_test": [
+  1.9,
+  2.7,
+  2.9,
+  3.0,
+  3.1,
+  3.3,
+  3.4,
+  4.1
+ ],
+ "dz_n": 4,
+ "dz_go": 2,
+ "min_table": 30,
+ "red_max": 0.08,
+ "min_cross": 30
+}
