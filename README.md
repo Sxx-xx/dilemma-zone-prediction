@@ -8,16 +8,29 @@ Each through event at yellow onset is split into a platoon **leader** (no unpass
 `v² / 2d > b` — are compared with logistic regression, MLP, LSTM and Transformer under the same
 leave-one-recording-out cross-validation, with cycle-level bootstrap 95 % CIs.
 
-## Key results (FLUID FI, Xuancheng, 151 through events = 88 leaders + 63 followers)
+## Key results
+**FLUID FI (Xuancheng, 1 intersection, 151 through events = 88 leaders + 63 followers)**
 - **Followers stopped whenever their leader stopped (33 / 33)**, and no model beat rule A on followers →
   the decision worth predicting is the **leader's**.
-- **Leaders (88, 55 go):** rule A macro-F1 **0.700**, logistic regression on (d, v, a) **0.881**,
+- Leaders (88, 55 go): rule A (t_r = recorded 3 s yellow) macro-F1 **0.700**, logistic regression on (d, v, a) **0.881**,
   difference **+0.185 [95 % CI +0.075, +0.289]**.
-- **Dropping acceleration removes the gain:** logistic regression on (d, v) is +0.063 [−0.036, +0.163] vs rule A
-  (not significant) → the benefit comes from deceleration already under way at yellow onset.
 
-**Limitations:** one intersection only; no real-vehicle validation; the multi-intersection SinD dataset
-(full release) is still awaiting approval.
+**V2X-Seq TFD (Beijing Yizhuang, roadside sensors, 23 intersections, 1,867 leaders; leave-one-intersection-out)**
+- Rule A with t_r = recorded 4 s yellow: macro-F1 **0.673**. Every learned model beats it by +0.16 – +0.19 (MLP 0.862).
+- **The gap is mostly the threshold, not the model.** Drivers' go/stop boundary is **d/v ≈ 2.7 s**, 1.3 s shorter than
+  the yellow. Rule A with t_r* estimated on the *training* intersections (2.63 – 2.70 s in all 23 folds) reaches
+  **0.831**, and at approach speeds ≥ 10 m/s (1,418 events) **0.844 — no learned model beats it**. Learned models
+  keep a gain only at < 10 m/s (+0.05 – +0.09) and MLP overall (+0.03 [+0.015, +0.046]).
+- The boundary transfers across datasets: t_r* = 2.44 s estimated on FLUID applied unchanged to V2X-Seq gives 0.835,
+  the same as V2X-Seq's own calibration.
+- Acceleration does not help on V2X-Seq (LR(d, v) − LR(d, v, a) = −0.009, n.s.; the per-frame acceleration is sensor
+  noise and smoothing it changes nothing). (x, y, v, a) sequence models collapse when transferred; (d, v, a) sequences
+  match logistic regression but never beat it (learning curve: LR saturates at 25 % of the training cycles).
+- Dilemma-zone band (d/v 2.5 – 5.5 s, 509 events): calibrated rule A 0.611, band-only LR 0.650, MLP 0.654, LSTM 0.61 – 0.64
+  — indistinguishable; only full-training linear models fail there (0.46 – 0.50).
+
+**Limitations:** two cities; roadside-sensor accelerations are noisy; V2X-Seq labels depend on a per-approach stop-line
+calibration and 10 – 45 s label horizons; no real-vehicle validation. Figures for the paper: `results/figures/`.
 
 - What was verified vs. assumed (all numbers): [`docs/FINDINGS.md`](docs/FINDINGS.md)
 - Plan & status: [`docs/ROADMAP.md`](docs/ROADMAP.md)
@@ -35,7 +48,8 @@ src/dzp/
   bench_eval.py   leave-one-group-out splits, out-of-fold predictions, paired cycle bootstrap
   models.py, evaluate.py   earlier SinD/NGSIM experiment code
 scripts/
-  run_benchmark.py   dataset-agnostic yellow-onset benchmark (--dataset fluid|sind, --split all|leader|follower)
+  run_benchmark.py   dataset-agnostic yellow-onset benchmark (--dataset fluid|sind|v2xseq, --split all|leader|follower)
+  v2xseq_extract.py, v2xseq_eval.py, v2xseq_followup.py, paper_materials.py   V2X-Seq leader evaluation, follow-ups (A-E), figures
   leader_follower.py roles, leader features for followers, leader/follower risk pairs
   fluid_check.py, fluid_visibility.py, sind_check_alignment.py, run_sind.py, run_ngsim.py, lankershim_*.py
 results/          CSV/JSON outputs + figures (committed; raw data is not)
@@ -46,6 +60,9 @@ tests/            labeling / rule unit tests
 - **FLUID** (Xuancheng, China; Scientific Data 2026; CC BY 4.0): figshare doi `10.6084/m9.figshare.29974954` v2,
   `derived_data` zips 64179079 (TI), 64179085 (FI), 64179082 (FIDRT) → `data/raw/fluid/{TI,FI,FIDRT}/`
   (checksums in `data/raw/fluid/SOURCE.txt`). Main experiments use FI (W/E approaches).
+- **V2X-Seq TFD** (DAIR-V2X-Seq, Beijing; single-infrastructure trajectories + traffic-light CSVs + HD maps) →
+  `data/raw/v2xseq/full/extracted/V2X-Seq-TFD/`; adapter `src/dzp/v2xseq.py`, calibrated stop lines
+  `results/v2xseq/stopline_shift.csv` (see `docs/FINDINGS.md`, "V2X-Seq").
 - **SinD** sample: `git clone https://github.com/SOTIF-AVLab/SinD` → copy `Data/*` to `data/raw/sind/`
   (commit used: `data/raw/sind/SOURCE_COMMIT`). Non-commercial license; full dataset by application.
 - **NGSIM Peachtree**: trajectories from `https://data.transportation.gov/resource/8ect-6jqj.csv?$where=location='peachtree'`
