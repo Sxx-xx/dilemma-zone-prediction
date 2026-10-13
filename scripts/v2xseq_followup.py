@@ -12,6 +12,11 @@ B. dilemma zone (d/v 2.5-5.5 s at onset) only
                          leaders, drawn on the (d, v) plane at a = 0 (LSTM: constant-speed 2 s window), band shaded
    dz_speed_split.csv    trained-on-all LOIO models tested inside the band, by speed (from ../preds_loio.csv)   [B2]
    dz_inband_vs_all.csv  same band test events: trained-on-all models vs the in-band-trained LR(d,v,a)          [B2]
+D. calibrated rule A, fair LOIO (23 folds, every site tested) -> ../calibrated_rule/
+   fold_params.csv       per fold: t_r* (logistic d/v boundary of the training sites), d_max* (band go-50 % distance)
+   metrics.csv           calibrated rule A (+ distance cap, E), band-only LR(d,v,a)/(d,v), full-training LR/MLP/LSTM;
+                         cycle bootstrap, diffs vs calibrated rule A and vs LR(d,v,a); subsets all / dz / v<10 / v>=10
+   pairwise_macro_f1.csv all pairwise macro-F1 differences with CIs; tr_fixed_sensitivity.csv (from ruleA_tr_curve.csv)
 C. rule A inside the band
    ruleA_tr_sweep.csv    rule A with t_r fixed at 2.5 / 3.0 / 3.5 / 4.0 s vs the recorded t_r (paired bootstrap)
    ruleA_tr_curve.csv    band macro-F1 for t_r = 1.5 ... 6.0 s (point estimates)
@@ -20,6 +25,7 @@ C. rule A inside the band
 
   nice -n 19 .venv/bin/python scripts/v2xseq_followup.py --tasks A,C      # cheap, no torch
   nice -n 19 .venv/bin/python scripts/v2xseq_followup.py --tasks B,B2
+  nice -n 19 .venv/bin/python scripts/v2xseq_followup.py --tasks D --threads 8
 """
 import argparse
 import os
@@ -246,6 +252,103 @@ def task_b2(args, ev, F, S, out):
     print(d2[d2.metric == "macro_f1"][["subset", "model", "value", "diff_vs_ref", "diff_lo", "diff_hi", "n", "n_go"]].round(3).to_string(), flush=True)
 
 
+# ---------------------------------------------------------------- D
+def _t50(x, y):
+    """d/v (or d) at P(go) = 0.5 from a univariate logistic fit; NaN when the slope is not negative."""
+    if len(np.unique(y)) < 2:
+        return np.nan
+    lr = LogisticRegression(max_iter=1000).fit(x[:, None], y)
+    b1, b0 = lr.coef_[0, 0], lr.intercept_[0]
+    return -b0 / b1 if b1 < 0 else np.nan
+
+
+def pairwise(ev, P, mask, n_boot, seed=0):
+    """All pairwise macro-F1 differences with cycle-bootstrap 95 % CIs (same draws as bench_eval.bootstrap)."""
+    y = ev["label"].values.astype(int)
+    cyc = bench_eval.cycles(ev)
+    ucyc = np.unique(cyc[mask])
+    members = {c: np.where((cyc == c) & mask)[0] for c in ucyc}
+    rng = np.random.default_rng(seed)
+    draws = [np.concatenate([members[c] for c in rng.choice(ucyc, len(ucyc))]) for _ in range(n_boot)]
+    names = list(P)
+    f1 = {}
+    for n in names:
+        p = P[n][0]
+        f1[n] = np.array([bench_eval._macro_f1(y[ix], (p[ix] >= 0.5).astype(int)) for ix in draws])
+    rows = []
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            d = f1[a] - f1[b]
+            rows.append(dict(model_a=a, model_b=b, diff=float(d.mean()), lo=float(np.percentile(d, 2.5)), hi=float(np.percentile(d, 97.5))))
+    return pd.DataFrame(rows)
+
+
+def task_d(args, ev, F, S, out):
+    """Calibrated rule A under full LOIO (every site tested, 23 folds): t_r* from the training sites' leaders
+    (univariate logistic on d/v, d/v <= --tt-max), band-only LR(d,v,a)/(d,v), full-training LR/MLP/LSTM, and
+    the distance-capped rule (E): go iff d/v < t_r* and d < d_max*, d_max* = band go-rate-50 % distance."""
+    out = f"{out}/../calibrated_rule"
+    os.makedirs(out, exist_ok=True)
+    y = ev["label"].values.astype(int)
+    tt, d, tr = F["tt"].values, F["d"].values, F["t_r"].values
+    band = (tt >= DZ_LO) & (tt <= DZ_HI)
+    folds = loio_folds(ev, 1)
+    print(f"[D] {len(folds)} folds, band events {int(band.sum())}", flush=True)
+    names = {"ruleA_calibrated": None, "ruleA_calibrated_dcap": None, "ruleA_calibrated_dcap50": None, "band_logreg_dva": None, "band_logreg_dv": None}
+    P = {k: np.full(len(y), np.nan) for k in names}
+    params = []
+    for site, trn, te in folds:
+        keep = trn[tt[trn] <= args.tt_max]
+        t50 = _t50(tt[keep], y[keep])
+        btr = trn[band[trn]]
+        d50 = _t50(d[btr], y[btr])
+        P["ruleA_calibrated"][te] = (tt[te] < t50).astype(float)
+        # E: the cap only exists when the band go rate crosses 50 % at some positive distance; otherwise no cap
+        cap = d50 if (np.isfinite(d50) and d50 > 0) else np.inf
+        P["ruleA_calibrated_dcap"][te] = ((tt[te] < t50) & (d[te] < cap)).astype(float)
+        P["ruleA_calibrated_dcap50"][te] = ((tt[te] < t50) & (d[te] < args.d_cap)).astype(float)
+        bte = te[band[te]]
+        if len(bte) and len(np.unique(y[btr])) == 2:
+            P["band_logreg_dva"][bte] = LogRegDVA().fit(F.iloc[btr], S[btr], y[btr]).proba(F.iloc[bte], S[bte])
+            P["band_logreg_dv"][bte] = LogRegDV().fit(F.iloc[btr], S[btr], y[btr]).proba(F.iloc[bte], S[bte])
+        params.append(dict(test_site=site, n_test=len(te), n_test_band=len(bte), n_train=len(trn), n_train_band=len(btr),
+                           t_r_star=t50, d_max_star=d50, d_cap_used=cap, t_r_recorded_median=float(np.median(tr[te])),
+                           band_go_rate_train=float(y[btr].mean())))
+    pr = pd.DataFrame(params)
+    pr.to_csv(f"{out}/fold_params.csv", index=False)
+    print(pr.round(2).to_string(), flush=True)
+    print(f"t_r* mean {pr.t_r_star.mean():.3f} range {pr.t_r_star.min():.3f}-{pr.t_r_star.max():.3f}; d_max* mean {pr.d_max_star.mean():.1f} range {pr.d_max_star.min():.1f}-{pr.d_max_star.max():.1f}", flush=True)
+    full = [(RuleA, {}), (LogRegDVA, {}), (LogRegDV, {}), (MLPDVA, {}), (LSTMSeq, {"n_seeds": args.n_seeds}), (LSTMDVA, {"n_seeds": args.n_seeds})]
+    cache = f"{out}/preds_loio23.csv"
+    if args.reuse_preds and os.path.exists(cache):
+        c = ev[["segment", "track_id"]].merge(pd.read_csv(cache), on=["segment", "track_id"], how="left")
+        assert len(c) == len(ev)
+        Q = {M.name: (c[M.name].values, c[M.name].values) for M, _ in full if M.name in c}
+        print(f"  reusing full-model predictions from {cache}: {list(Q)}", flush=True)
+    else:
+        Q = oof(full, F, S, y, folds)
+    Q[RuleA.name] = ((tr - tt > 0).astype(float), tr - tt)
+    for k, v in P.items():
+        Q[k] = (v, v)
+    # composite: full LR(d,v,a) outside the band, band-only LR(d,v,a) inside (gives the band model an all-event score)
+    comp = np.where(band, P["band_logreg_dva"], Q[LogRegDVA.name][0])
+    Q["composite_band_lr_dva"] = (comp, comp)
+    pd.DataFrame({k: v[0] for k, v in Q.items()}).assign(segment=ev["segment"], track_id=ev["track_id"], site=ev["group"]).to_csv(f"{out}/preds_loio23.csv", index=False)
+    rows, pw = [], []
+    for sub, mask in [("all", np.ones(len(y), bool)), ("dz", band), ("v<10", F["v"].values < V_SPLIT), ("v>=10", F["v"].values >= V_SPLIT)]:
+        Qs = {k: v for k, v in Q.items() if np.isfinite(v[0][mask]).all()}
+        for ref in ("ruleA_calibrated", LogRegDVA.name):
+            rows.append(bench_eval.bootstrap(ev, Qs, mask, args.n_boot, ref=ref).assign(subset=sub))
+        pw.append(pairwise(ev, Qs, mask, args.n_boot).assign(subset=sub))
+    df = pd.concat(rows, ignore_index=True)
+    df.to_csv(f"{out}/metrics.csv", index=False)
+    pd.concat(pw, ignore_index=True).to_csv(f"{out}/pairwise_macro_f1.csv", index=False)
+    q = df[(df.metric == "macro_f1") & (df.ref == "ruleA_calibrated")]
+    print(q[["subset", "model", "value", "ci_lo", "ci_hi", "diff_vs_ref", "diff_lo", "diff_hi", "n", "n_go"]].round(3).to_string(), flush=True)
+    cur = pd.read_csv(f"{args.out}/ruleA_tr_curve.csv")
+    cur[(cur.t_r >= 2.0) & (cur.t_r <= 4.0)].to_csv(f"{out}/tr_fixed_sensitivity.csv", index=False)
+
+
 # ---------------------------------------------------------------- C
 def task_c(args, ev, F, S, out):
     y = ev["label"].values.astype(int)
@@ -311,6 +414,8 @@ def main():
     ap.add_argument("--n-boot", type=int, default=1000)
     ap.add_argument("--n-seeds", type=int, default=3)
     ap.add_argument("--threads", type=int, default=4)
+    ap.add_argument("--d-cap", type=float, default=50.0, help="D/E: fixed distance cap (m) for the sensitivity variant")
+    ap.add_argument("--reuse-preds", action="store_true", help="D: reuse full-model LOIO predictions saved by an earlier run")
     args = ap.parse_args()
     import torch
     torch.set_num_threads(args.threads)
@@ -319,7 +424,7 @@ def main():
     print(f"leaders {len(ev)} go {int(ev.label.sum())}", flush=True)
     for t in args.tasks.split(","):
         print(f"=== task {t}", flush=True)
-        {"A": task_a, "B": task_b, "B2": task_b2, "C": task_c}[t](args, ev, F, S, args.out)
+        {"A": task_a, "B": task_b, "B2": task_b2, "C": task_c, "D": task_d}[t](args, ev, F, S, args.out)
 
 
 if __name__ == "__main__":
