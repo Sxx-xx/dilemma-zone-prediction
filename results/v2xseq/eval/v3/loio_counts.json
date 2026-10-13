@@ -1,0 +1,115 @@
+{
+ "test_sites": [
+  "yizhuang#1-1_po",
+  "yizhuang#12-1_po",
+  "yizhuang#13-1_po",
+  "yizhuang#14-1_po",
+  "yizhuang#15-1_po",
+  "yizhuang#16-1_po",
+  "yizhuang#2-1_po",
+  "yizhuang#20-1_po",
+  "yizhuang#24-2_po",
+  "yizhuang#25-1_po",
+  "yizhuang#3-1_po",
+  "yizhuang#4-1_po",
+  "yizhuang#6-1_po",
+  "yizhuang#7-1_po"
+ ],
+ "n_tested": 1635,
+ "n_tested_go": 1298,
+ "n_total": 1800,
+ "per_site": {
+  "yizhuang#1-1_po": {
+   "n": 170,
+   "go": 150
+  },
+  "yizhuang#11-1_po": {
+   "n": 13,
+   "go": 7
+  },
+  "yizhuang#12-1_po": {
+   "n": 50,
+   "go": 33
+  },
+  "yizhuang#13-1_po": {
+   "n": 70,
+   "go": 47
+  },
+  "yizhuang#14-1_po": {
+   "n": 64,
+   "go": 45
+  },
+  "yizhuang#15-1_po": {
+   "n": 286,
+   "go": 238
+  },
+  "yizhuang#16-1_po": {
+   "n": 282,
+   "go": 232
+  },
+  "yizhuang#17-1_po": {
+   "n": 29,
+   "go": 28
+  },
+  "yizhuang#18-1_po": {
+   "n": 29,
+   "go": 13
+  },
+  "yizhuang#19-1_po": {
+   "n": 18,
+   "go": 15
+  },
+  "yizhuang#2-1_po": {
+   "n": 110,
+   "go": 88
+  },
+  "yizhuang#20-1_po": {
+   "n": 75,
+   "go": 46
+  },
+  "yizhuang#21-1_po": {
+   "n": 17,
+   "go": 16
+  },
+  "yizhuang#24-2_po": {
+   "n": 50,
+   "go": 45
+  },
+  "yizhuang#25-1_po": {
+   "n": 33,
+   "go": 23
+  },
+  "yizhuang#27-1_po": {
+   "n": 17,
+   "go": 17
+  },
+  "yizhuang#28-1_po": {
+   "n": 13,
+   "go": 12
+  },
+  "yizhuang#3-1_po": {
+   "n": 148,
+   "go": 102
+  },
+  "yizhuang#4-1_po": {
+   "n": 142,
+   "go": 122
+  },
+  "yizhuang#5-1_po": {
+   "n": 28,
+   "go": 23
+  },
+  "yizhuang#6-1_po": {
+   "n": 117,
+   "go": 97
+  },
+  "yizhuang#7-1_po": {
+   "n": 38,
+   "go": 30
+  },
+  "yizhuang#9-1_po": {
+   "n": 1,
+   "go": 1
+  }
+ }
+}

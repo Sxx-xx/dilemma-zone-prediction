@@ -21,3 +21,5 @@ results/cctv_pilot/local/
 results/v2xseq/review*/events/
 results/v2xseq/review_*/
 results/v2xseq/review/approaches_*.csv
+results/v2xseq/eval/**/*.log
+results/v2xseq/eval/**/chain_*.sh

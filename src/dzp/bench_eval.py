@@ -16,6 +16,10 @@ from sklearn.model_selection import StratifiedGroupKFold
 
 
 def cycles(ev: pd.DataFrame) -> np.ndarray:
+    """Yellow-cycle id per event: ev['cycle'] when given (V2X-Seq: segment:onset, since group = site there),
+    else group:onset frame."""
+    if "cycle" in ev.columns:
+        return ev["cycle"].astype(str).values
     return (ev["group"].astype(str) + ":" + ev["f_yellow"].round().astype(int).astype(str)).values
 
 

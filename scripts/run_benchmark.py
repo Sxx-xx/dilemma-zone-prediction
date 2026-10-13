@@ -4,6 +4,10 @@ Example (FLUID FI, the pilot):
   .venv/bin/python scripts/run_benchmark.py --dataset fluid --root data/raw/fluid/FI/derived_data --site FI \
       --approaches W_approach,E_approach --light-map W_approach=light_E_s,E_approach=light_E_s \
       --out results/fluid_fi --event-dir data/raw/fluid/results/benchmark_fi
+V2X-Seq (dzp.v2xseq; --site = signal-position site, --shift-table = calibrated stop lines):
+  .venv/bin/python scripts/run_benchmark.py --dataset v2xseq --root data/raw/v2xseq/full/extracted/V2X-Seq-TFD \
+      --shift-table results/v2xseq/stopline_shift.csv --group intersection --split leader --leads 0 --offsets 0 \
+      --out results/v2xseq/bench --event-dir data/raw/v2xseq/results/bench_leader
 SinD (when the full data arrives; group = recording, or --group intersection for LOIO):
   .venv/bin/python scripts/run_benchmark.py --dataset sind --root data/raw/sind --out results/sind_bench \
       --event-dir data/raw/sind/results/benchmark --group intersection
@@ -52,7 +56,8 @@ def load_recordings(args, offset_s):
         lanes = v2xseq.lane_index(args.root, cache)
         segs = [s for s in v2xseq.segments(args.root, cache)
                 if (not args.site or s.inter == args.site) and s.name not in set(filter(None, args.exclude.split(",")))]
-        return [(v2xseq.load_recording(args.root, s, lanes, shift_s=offset_s),
+        shift = v2xseq.load_shift_table(getattr(args, "shift_table", ""))
+        return [(v2xseq.load_recording(args.root, s, lanes, shift_s=offset_s, shift_table=shift),
                  s.inter if args.group == "intersection" else s.name) for s in segs]
     raise ValueError(args.dataset)
 
@@ -144,6 +149,7 @@ def main():
     ap.add_argument("--n-boot", type=int, default=1000)
     ap.add_argument("--n-seeds", type=int, default=3)
     ap.add_argument("--no-transformer", action="store_true")
+    ap.add_argument("--shift-table", default="", help="v2xseq: calibrated stop-line shift CSV (scripts/v2xseq_calibrate.py)")
     ap.add_argument("--split", default="all", choices=["all", "leader", "follower"],
                     help="evaluate all through events, or only platoon leaders / followers at yellow onset")
     args = ap.parse_args()
