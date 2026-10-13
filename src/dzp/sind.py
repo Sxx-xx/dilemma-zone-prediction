@@ -44,6 +44,7 @@ class Recording:
     map: LaneletMap
     meta: pd.DataFrame | None = None
     notes: list[str] = field(default_factory=list)
+    light_map: dict[int, str] | None = None  # approach sid -> light column when known from the data (else inferred)
 
     def light_state_at(self, col: str, frame: np.ndarray) -> np.ndarray:
         """Light state at (possibly fractional) track frames; -1 before the first event."""

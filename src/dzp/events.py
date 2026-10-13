@@ -37,6 +37,8 @@ def approach_crossings(rec: sind.Recording):
     aps = build_approaches(rec.map.stop_lines())
     ta = turn_angle(t)
     cr = pd.concat([find_crossings(t, a, LAT_MARGIN) for a in aps], ignore_index=True)
+    if cr.empty:
+        cr = pd.DataFrame(columns=["track_id", "frame", "sid", "speed"])
     cr["turn_deg"] = cr["track_id"].map(ta)
     cr["right_turn"] = cr["turn_deg"] < RIGHT_TURN_DEG
     return aps, cr
@@ -67,7 +69,7 @@ def yellow_intervals(rec: sind.Recording, col: str) -> pd.DataFrame:
             red = fr[i + 1] if i + 1 < len(s) else np.nan
             nxt = [fr[j] for j in range(i + 1, len(s)) if s[j] == sind.GREEN]
             rows.append(dict(f_yellow=fr[i], f_red=red, f_green=nxt[0] if nxt else np.nan))
-    df = pd.DataFrame(rows)
+    df = pd.DataFrame(rows, columns=["f_yellow", "f_red", "f_green"])
     df["yellow_s"] = (df["f_red"] - df["f_yellow"]) * sind.DT
     return df
 

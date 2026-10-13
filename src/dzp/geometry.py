@@ -86,4 +86,5 @@ def turn_angle(tracks: pd.DataFrame, k: int = 10) -> pd.Series:
         a1 = np.arctan2(g["vy"].values[-k:].mean(), g["vx"].values[-k:].mean())
         return np.degrees((a1 - a0 + np.pi) % (2 * np.pi) - np.pi)
 
-    return tr.groupby("track_id").apply(f)
+    out = tr.groupby("track_id").apply(f)
+    return out if isinstance(out, pd.Series) else pd.Series(dtype=float)   # no moving track -> empty DataFrame

@@ -16,3 +16,8 @@ results/cctv_pilot/local/
 
 # paper drafts (not public)
 논문초안*.pdf
+
+# V2X-Seq review: per-event plots and intermediate runs (tables are committed)
+results/v2xseq/review*/events/
+results/v2xseq/review_*/
+results/v2xseq/review/approaches_*.csv

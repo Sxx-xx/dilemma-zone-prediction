@@ -46,6 +46,14 @@ def load_recordings(args, offset_s):
             rec.lights = rec.lights.assign(frame=rec.lights["frame"] + offset_s / sind.DT)
             out.append((rec, rec.intersection if args.group == "intersection" else rec.name))
         return out
+    if args.dataset == "v2xseq":
+        from dzp import v2xseq
+        cache = os.path.join(args.root, "..", "..", "results", "cache")
+        lanes = v2xseq.lane_index(args.root, cache)
+        segs = [s for s in v2xseq.segments(args.root, cache)
+                if (not args.site or s.inter == args.site) and s.name not in set(filter(None, args.exclude.split(",")))]
+        return [(v2xseq.load_recording(args.root, s, lanes, shift_s=offset_s),
+                 s.inter if args.group == "intersection" else s.name) for s in segs]
     raise ValueError(args.dataset)
 
 
@@ -68,13 +76,17 @@ def extract(args, offset_s):
     evs, feats, seqs = [], [], {L: [] for L in args.leads}
     for rec, group in load_recordings(args, offset_s):
         aps = build_approaches(rec.map.stop_lines())
+        override = None
         if lmap_arg:
             override = {a.sid: lmap_arg[a.name()] for a in aps if a.name() in lmap_arg}
+        elif rec.light_map:
+            override = rec.light_map
+        if override is not None:
             infer, events.infer_light_map = events.infer_light_map, (lambda _r, _c: override)
         try:
             ev, _, _ = events.extract_events(rec)
         finally:
-            if lmap_arg:
+            if override is not None:
                 events.infer_light_map = infer
         if ev.empty:
             continue
@@ -114,7 +126,7 @@ def at(feat, seqs, L, idx):
 # ----------------------------------------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dataset", required=True, choices=["fluid", "sind"])
+    ap.add_argument("--dataset", required=True, choices=["fluid", "sind", "v2xseq"])
     ap.add_argument("--root", required=True)
     ap.add_argument("--site", default="")
     ap.add_argument("--exclude", default="", help="comma list of recordings/videos to drop")
