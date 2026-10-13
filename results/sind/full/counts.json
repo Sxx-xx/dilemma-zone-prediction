@@ -1,0 +1,57 @@
+{
+ "n": 102,
+ "n_go": 74,
+ "n_band": 15,
+ "loio_unit": "recording",
+ "test_sites": [
+  "Changchun/changchun_pudong_507_009",
+  "Changchun/changchun_pudong_507_010",
+  "Changchun/changchun_pudong_507_011",
+  "Changchun/changchun_pudong_523_005",
+  "Changchun/changchun_pudong_523_007"
+ ],
+ "n_tested": 102,
+ "per_site": {
+  "Changchun/changchun_pudong_507_009": {
+   "n": 29,
+   "go": 23
+  },
+  "Changchun/changchun_pudong_507_010": {
+   "n": 24,
+   "go": 22
+  },
+  "Changchun/changchun_pudong_507_011": {
+   "n": 22,
+   "go": 19
+  },
+  "Changchun/changchun_pudong_523_005": {
+   "n": 8,
+   "go": 0
+  },
+  "Changchun/changchun_pudong_523_007": {
+   "n": 19,
+   "go": 10
+  }
+ },
+ "per_intersection": {
+  "cc": {
+   "n": 102,
+   "go": 74
+  }
+ },
+ "yellow_s": {
+  "3.0": 69,
+  "3.4": 6,
+  "2.6": 5,
+  "2.0": 4,
+  "3.3": 3,
+  "2.3": 3,
+  "2.8": 3,
+  "3.2": 3,
+  "3.5": 2,
+  "4.0": 1,
+  "4.1": 1,
+  "4.2": 1,
+  "3.1": 1
+ }
+}

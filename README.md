@@ -29,6 +29,10 @@ leave-one-recording-out cross-validation, with cycle-level bootstrap 95 % CIs.
 - Dilemma-zone band (d/v 2.5 – 5.5 s, 509 events): calibrated rule A 0.611, band-only LR 0.650, MLP 0.654, LSTM 0.61 – 0.64
   — indistinguishable; only full-training linear models fail there (0.46 – 0.50).
 
+**SinD v2.0 (full release, 6 intersections):** the drone footage covers only the intersection box, so only Changchun
+(102 leaders, 5 recordings) passes the visibility gate; there the yellow (≈ 3 s) already equals the driver boundary
+(2.72 s [2.17, 3.50]) and neither the calibrated rule nor the learned models gain significantly.
+
 **Limitations:** two cities; roadside-sensor accelerations are noisy; V2X-Seq labels depend on a per-approach stop-line
 calibration and 10 – 45 s label horizons; no real-vehicle validation. Figures for the paper: `results/figures/`.
 
@@ -50,6 +54,7 @@ src/dzp/
 scripts/
   run_benchmark.py   dataset-agnostic yellow-onset benchmark (--dataset fluid|sind|v2xseq, --split all|leader|follower)
   v2xseq_extract.py, v2xseq_eval.py, v2xseq_followup.py, paper_materials.py   V2X-Seq leader evaluation, follow-ups (A-E), figures
+  sind_full.py       SinD v2.0 full release: screening, leader events, boundary, leave-one-out
   leader_follower.py roles, leader features for followers, leader/follower risk pairs
   fluid_check.py, fluid_visibility.py, sind_check_alignment.py, run_sind.py, run_ngsim.py, lankershim_*.py
 results/          CSV/JSON outputs + figures (committed; raw data is not)

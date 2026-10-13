@@ -24,3 +24,5 @@ results/v2xseq/review/approaches_*.csv
 results/v2xseq/eval/**/*.log
 results/v2xseq/eval/**/chain_*.sh
 results/figures/run.log
+results/sind/full/*.log
+results/sind/full/extract_errors.txt
