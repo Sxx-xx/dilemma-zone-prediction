@@ -1,0 +1,5 @@
+signals,stitch,scenarios,multi_window_groups,max_windows,leaders,labeled,stop,go,unresolved,through_leaders,through_labeled,through_stop,through_go,through_labeled_hist,through_with_t_r,dz
+original,False,1455,0,1,258,148,35,113,110,81,46,9,37,32,17,32
+original,True,1455,15,2,256,148,35,113,108,81,46,9,37,32,17,32
+michigan,False,1455,0,1,258,148,35,113,110,81,46,9,37,32,17,32
+michigan,True,1455,15,2,256,148,35,113,108,81,46,9,37,32,17,32
