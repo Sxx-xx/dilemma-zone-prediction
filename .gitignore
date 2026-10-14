@@ -26,3 +26,4 @@ results/v2xseq/eval/**/chain_*.sh
 results/figures/run.log
 results/sind/full/*.log
 results/sind/full/extract_errors.txt
+results/womd/**/*.log

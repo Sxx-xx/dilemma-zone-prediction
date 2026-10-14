@@ -1,0 +1,94 @@
+{
+ "shards": [
+  "training.tfrecord-00000-of-01000",
+  "training.tfrecord-00001-of-01000"
+ ],
+ "shard_bytes": [
+  454771008,
+  481162498
+ ],
+ "n_scenarios": 990,
+ "n_signal_scenarios": 704,
+ "lane_state_share": {
+  "UNKNOWN": 0.20834834435696273,
+  "ARROW_STOP": 0.13408837324808237,
+  "ARROW_CAUTION": 0.013247592698171745,
+  "ARROW_GO": 0.031755747618931025,
+  "STOP": 0.3807366885740169,
+  "CAUTION": 0.021834481166557656,
+  "GO": 0.20939940748720712,
+  "FLASHING_STOP": 0.0005631319932424161,
+  "FLASHING_CAUTION": 2.6232856828062862e-05
+ },
+ "n_onsets": 376,
+ "scenarios_with_onset": 84,
+ "share_signal_scenarios_with_onset": 0.11931818181818182,
+ "onsets_from_go": 376,
+ "onsets_end_visible": 348,
+ "onsets_history_ok": 297,
+ "yellow_s": {
+  "n": 157,
+  "median": 4.0,
+  "q10": 2.9000000000000004,
+  "q90": 4.5,
+  "counts": {
+   "0.8": 10,
+   "1.0": 1,
+   "2.8": 3,
+   "2.9": 10,
+   "3.0": 8,
+   "3.3": 8,
+   "3.5": 10,
+   "3.9": 10,
+   "4.0": 27,
+   "4.1": 7,
+   "4.2": 8,
+   "4.3": 16,
+   "4.4": 18,
+   "4.5": 21
+  }
+ },
+ "events": {
+  "leaders_at_onset": 182,
+  "labeled": 104,
+  "stop": 20,
+  "go": 84,
+  "unresolved": 78,
+  "labeled_with_2s_history": 80,
+  "through_or_stop_with_history": 14,
+  "go_through_with_history": 14,
+  "labeled_by_movement": {
+   "left:go": 50,
+   "left:stop": 17,
+   "right:go": 11,
+   "right:stop": 1,
+   "through:go": 23,
+   "through:stop": 2
+  },
+  "dz_band": 1
+ },
+ "per_scenario": {
+  "onsets": 0.3797979797979798,
+  "labeled_events": 0.10505050505050505,
+  "usable_events": 0.014141414141414142
+ },
+ "extrapolation": {
+  "train_shards": 1000,
+  "scenarios_per_shard": 495.0,
+  "usable_events_training": 7000.0,
+  "labeled_events_training": 52000.0,
+  "training_bytes": 467966753000.0
+ },
+ "accel": {
+  "n_tracks": 12730,
+  "da_abs_mean": 6.391129639375222,
+  "a_std": 5.49286945575134,
+  "dv_abs_mean": 0.3985340923077722
+ },
+ "stop_point": {
+  "n": 8436,
+  "d_to_lane_end_median": 32.4186046077653,
+  "d_to_lane_end_q90": 46.83445990715502,
+  "share_within_1m_of_end": 0.012446657183499289
+ }
+}
