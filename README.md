@@ -1,7 +1,12 @@
-# Predicting Stop-or-Go Decisions of the Preceding Human-Driven Vehicle at Yellow Onset Using Signal Information: A Comparison of Kinematic Rules and Learned Models
+# Predicting the Preceding Vehicle’s Stop-or-Go Decision at Yellow Onset Using Signal Information: Calibrating the Driver Decision Boundary and Generalizing Across Intersections
 
 Can an automated vehicle that receives C-ITS **SPaT** (signal phase and timing) predict whether the
 **human-driven vehicle ahead of it in the same lane (the preceding vehicle)** will stop or go at yellow onset?
+
+**Answer:** the time-remaining rule with the SPaT yellow as its threshold reaches macro-F1 0.67, drivers actually
+decide at a time-to-stop-line boundary of ~2.7 s, and the same rule with that boundary calibrated on *other*
+intersections reaches 0.83 under 23-intersection leave-one-intersection-out; learned models add only +0.02 – +0.03
+overall and +0.05 – +0.09 at approach speeds below 10 m/s.
 
 Each through event at yellow onset is split into a platoon **leader** (no unpassed vehicle ahead in its lane) and a
 **follower**. Kinematic rules — A: `d / v < t_r` (reach the stop line before red), B: required deceleration
@@ -13,7 +18,9 @@ leave-one-recording-out cross-validation, with cycle-level bootstrap 95 % CIs.
 - **Followers stopped whenever their leader stopped (33 / 33)**, and no model beat rule A on followers →
   the decision worth predicting is the **leader's**.
 - Leaders (88, 55 go): rule A (t_r = recorded 3 s yellow) macro-F1 **0.700**, logistic regression on (d, v, a) **0.881**,
-  difference **+0.185 [95 % CI +0.075, +0.289]**.
+  difference **+0.185 [95 % CI +0.075, +0.289]**. Here the gain comes from acceleration (dropping *a* leaves
+  +0.063, n.s.; the drone-smoothed *a* is clean and the approach is slow, ~5 m/s), and the driver boundary
+  is **2.44 s [1.94, 3.04]** against a 3 s yellow — close enough that calibrating the rule gives no significant gain.
 
 **V2X-Seq TFD (Beijing Yizhuang, roadside sensors, 23 intersections, 1,867 leaders; leave-one-intersection-out)**
 - Rule A with t_r = recorded 4 s yellow: macro-F1 **0.673**. Every learned model beats it by +0.16 – +0.19 (MLP 0.862).
