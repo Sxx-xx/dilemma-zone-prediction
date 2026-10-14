@@ -132,13 +132,13 @@ def loio(args, ev, F, S, out):
     print(q.round(3).to_string(), flush=True)
 
 
-def _init(event_dir, exclude, min_site, threads):
+def _init(event_dir, exclude, min_site, threads, out=None):
     # spawn context: a forked worker deadlocks once torch has run in the parent (OpenMP), so reload the tables here
     import torch
     torch.set_num_threads(threads)
     os.nice(19)
     ev, F, S = load_tables(event_dir, exclude)
-    _D.update(ev=ev, F=F, S=S, folds=loio_folds(ev, min_site))
+    _D.update(ev=ev, F=F, S=S, folds=loio_folds(ev, min_site), out=out)
 
 
 def _draw(task):
@@ -163,6 +163,65 @@ def _draw(task):
         rows.append(dict(frac=frac, rep=rep, model=name, macro_f1=bench_eval._macro_f1(y[ok], (p[ok] >= 0.5).astype(int)), n_scored=int(ok.sum())))
     print(f"[curve] frac={frac:.2f} rep={rep} done", flush=True)
     return rows
+
+
+class _BandLR(LogRegDVA):
+    """LR(d,v,a) fitted on the band events (d/v 2.5-5.5 s) of the training set only."""
+    name = "band_logreg_dva"
+
+    def fit(self, F, S, y):
+        m = ((F["tt"] >= DZ_LO) & (F["tt"] <= DZ_HI)).values
+        return super().fit(F[m], S[m], y[m]) if len(np.unique(y[m])) == 2 else None
+
+
+def _draw_dz(task):
+    """One (fraction, draw) with saved out-of-fold P(go) for every tested event (task curve_dz)."""
+    frac, rep = task
+    ev, F, S, folds, out = _D["ev"], _D["F"], _D["S"], _D["folds"], _D["out"]
+    y, cyc = ev["label"].values.astype(int), bench_eval.cycles(ev)
+    models = [(LogRegDVA, {}), (_BandLR, {}), (MLPDVA, {}), (LSTMDVA, {"n_seeds": 1}), (TransformerDVA, {"n_seeds": 1})]
+    P = {M.name: np.full(len(y), np.nan) for M, _ in models}
+    n_train = []
+    for k, (site, tr, te) in enumerate(folds):
+        if frac < 1:
+            uc = np.unique(cyc[tr])
+            rng = np.random.default_rng([k, int(frac * 100), rep])
+            keep = rng.choice(uc, max(1, int(round(frac * len(uc)))), replace=False)
+            tr = tr[np.isin(cyc[tr], keep)]
+        n_train.append(len(tr))
+        if len(np.unique(y[tr])) < 2:
+            continue
+        for M, kw in models:
+            m = M(**kw).fit(F.iloc[tr], S[tr], y[tr])
+            if m is not None:
+                P[M.name][te] = m.proba(F.iloc[te], S[te])
+    pd.DataFrame(P).assign(segment=ev["segment"], track_id=ev["track_id"]).to_csv(f"{out}/preds_curve_f{frac:.2f}_r{rep}.csv", index=False)
+    band = ((F["tt"] >= DZ_LO) & (F["tt"] <= DZ_HI)).values
+    rows = []
+    for name, p in P.items():
+        for sub, mask in (("all", np.ones(len(y), bool)), ("dz", band)):
+            ok = np.isfinite(p) & mask
+            rows.append(dict(frac=frac, rep=rep, model=name, subset=sub, n_train_mean=float(np.mean(n_train)),
+                             macro_f1=bench_eval._macro_f1(y[ok], (p[ok] >= 0.5).astype(int)), n_scored=int(ok.sum())))
+    print(f"[curve_dz] frac={frac:.2f} rep={rep} done", flush=True)
+    return rows
+
+
+def curve_dz(args, ev, F, S, out):
+    """Learning curve re-scored inside the band (same draws/seeds as `curve`), predictions saved per draw."""
+    fracs = [float(x) for x in args.fracs.split(",")]
+    r0, r1 = args.rep_start, args.rep_start + args.curve_reps
+    tasks = [(f, r) for f in fracs for r in (range(r0, r1) if f < 1 else [0])]
+    threads = max(1, os.cpu_count() // args.workers)
+    with get_context("spawn").Pool(args.workers, initializer=_init, initargs=(args.event_dir, args.exclude, args.min_site, threads, out)) as pool:
+        rows = sum(pool.map(_draw_dz, tasks, chunksize=1), [])
+    raw = pd.DataFrame(rows)
+    raw.to_csv(f"{out}/curve_dz_draws.csv", index=False)
+    lc = raw.groupby(["model", "subset", "frac"]).agg(mean=("macro_f1", "mean"), lo=("macro_f1", lambda x: np.percentile(x, 2.5)),
+                                                      hi=("macro_f1", lambda x: np.percentile(x, 97.5)), draws=("macro_f1", "size"),
+                                                      n_train=("n_train_mean", "mean")).reset_index()
+    lc.to_csv(f"{out}/curve_dz.csv", index=False)
+    print(lc.round(3).to_string(), flush=True)
 
 
 def curve(args, ev, F, S, out):
@@ -207,7 +266,7 @@ def main():
     json.dump(dict(n=len(ev), n_go=int(ev.label.sum()), subsets={k: int(v.sum()) for k, v in subsets(ev, F).items()},
                    t_r=ev["yellow_s"].round(1).value_counts().to_dict()), open(f"{args.out}/counts.json", "w"), indent=1, default=int)
     for task in args.tasks.split(","):
-        {"external": external, "loio": loio, "curve": curve}[task](args, ev, F, S, args.out)
+        {"external": external, "loio": loio, "curve": curve, "curve_dz": curve_dz}[task](args, ev, F, S, args.out)
 
 
 if __name__ == "__main__":
