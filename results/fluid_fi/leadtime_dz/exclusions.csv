@@ -1,0 +1,6 @@
+lead_s,band,band_track_ended,band_crossed,band_usable,band_usable_go,all_usable
+0.0,26,0,0,26,7,88
+0.5,26,0,0,26,7,73
+1.0,26,0,0,26,7,61
+1.5,26,0,0,26,7,50
+2.0,26,0,1,25,6,43

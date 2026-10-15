@@ -29,9 +29,9 @@ from run_benchmark import movement
 _G = {}
 
 
-def _init(root, cache, nice, shift_path):
+def _init(root, cache, nice, shift_path, leads=(0.0,)):
     os.nice(nice)
-    _G["root"], _G["lanes"], _G["shift"] = root, v2xseq.lane_index(root, cache), v2xseq.load_shift_table(shift_path)
+    _G["root"], _G["lanes"], _G["shift"], _G["leads"] = root, v2xseq.lane_index(root, cache), v2xseq.load_shift_table(shift_path), list(leads)
 
 
 def one(seg):
@@ -51,16 +51,19 @@ def one(seg):
         ev = ev[ev["movement"] == "through"].reset_index(drop=True)
         if ev.empty:
             return None
-        f, s = features.build(rec, ev, aps, [0.0], dt=v2xseq.DT)
-        keep = np.where(f["ldr_id"].values < 0)[0]
+        leads = _G["leads"]
+        f, s = features.build(rec, ev, aps, leads, dt=v2xseq.DT)
+        f0 = f[f["lead_s"] == 0.0].set_index("ev").reindex(np.arange(len(ev)))
+        keep = np.where(f0["ldr_id"].values < 0)[0]
         if not len(keep):
             return None
         ev = ev.iloc[keep].reset_index(drop=True)
         ev["segment"], ev["group"] = seg.name, seg.inter
         ev["cycle"] = seg.name + ":" + ev["f_yellow"].round().astype(int).astype(str)
         ev["t_abs"] = seg.t0 + ev["f_yellow"] * v2xseq.DT
-        f = f.iloc[keep].reset_index(drop=True)
-        return ev, f, s[0.0][keep]
+        f = f[f["ev"].isin(keep)].copy()
+        f["ev"] = f["ev"].map({o: i for i, o in enumerate(keep)})
+        return ev, f.reset_index(drop=True), {L: s[L][keep] for L in leads}
     except Exception:
         return dict(error=f"{seg.name}: {traceback.format_exc()}")
 
@@ -73,11 +76,15 @@ def main():
     ap.add_argument("--shift-table", default="")
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--nice", type=int, default=19)
+    ap.add_argument("--leads", default="0", help="prediction times relative to yellow onset (s), e.g. 0,0.5,1,1.5,2")
     args = ap.parse_args()
+    leads = [float(x) for x in args.leads.split(",")]
+    if 0.0 not in leads:
+        leads.append(0.0)
     os.makedirs(args.out, exist_ok=True)
     segs = v2xseq.segments(args.root, args.cache)
     E, F, S, errs = [], [], [], []
-    with Pool(args.workers, initializer=_init, initargs=(args.root, args.cache, args.nice, args.shift_table)) as pool:
+    with Pool(args.workers, initializer=_init, initargs=(args.root, args.cache, args.nice, args.shift_table, leads)) as pool:
         for i, r in enumerate(pool.imap_unordered(one, segs, chunksize=4)):
             if r is None:
                 continue
@@ -88,12 +95,13 @@ def main():
             if i % 2000 == 0:
                 print(f"{i}/{len(segs)} leaders {sum(len(e) for e in E)}", flush=True)
     ev = pd.concat(E, ignore_index=True)
+    off = np.cumsum([0] + [len(e) for e in E[:-1]])
+    for f, o in zip(F, off):
+        f["ev"] += o
     feat = pd.concat(F, ignore_index=True)
-    feat["ev"] = np.arange(len(feat))
-    seq = np.concatenate(S)
     ev.to_csv(f"{args.out}/events_through.csv", index=False)
     feat.to_csv(f"{args.out}/features_through.csv", index=False)
-    np.savez_compressed(f"{args.out}/sequences_through.npz", **{"lead+0.0": seq.astype(np.float32)})
+    np.savez_compressed(f"{args.out}/sequences_through.npz", **{f"lead{L:+.1f}": np.concatenate([s[L] for s in S]).astype(np.float32) for L in leads})
     open(f"{args.out}/errors.txt", "w").write("\n".join(errs))
     print(f"done: leaders {len(ev)} (go {int(ev.label.sum())}), sites {ev.group.nunique()}, errors {len(errs)}", flush=True)
 

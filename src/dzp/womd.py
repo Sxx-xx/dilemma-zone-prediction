@@ -314,7 +314,10 @@ def smooth_speed(v, valid, w=SMOOTH_S):
 
 
 # ----------------------------------------------------------------------------------------------- events
-def extract_window(win, source, accel_rows):
+LEADS = (0.0,)
+
+
+def extract_window(win, source, accel_rows, leads=LEADS):
     """Yellow-onset leader events of one (stitched) window -> (event rows, feature rows, sequences)."""
     T, tracks, lanes = win["T"], win["tracks"], win["lanes"]
     for tr in tracks:
@@ -332,7 +335,7 @@ def extract_window(win, source, accel_rows):
             ms = np.isfinite(a_s[1:]) & np.isfinite(a_s[:-1]) & (v[1:] > 2)
             accel_rows.append(dict(window=win["id"], track=tr["id"], n=int(m.sum()), da_raw=float(np.abs(np.diff(a_raw))[m].mean()),
                                    da_smooth=float(np.abs(np.diff(a_s))[ms].mean()) if ms.any() else np.nan))
-    ev_rows, feat_rows, seqs = [], [], []
+    ev_rows, feat_rows, seqs = [], [], {}
     for lid, (sq, sp) in win["signals"].items():
         if lid not in lanes:
             continue
@@ -403,12 +406,28 @@ def extract_window(win, source, accel_rows):
                 # relaxed stop: still upstream at the window end, slow and braking (v < 3 m/s, a < -0.5 m/s2) -> stop
                 label_relaxed = label if label >= 0 else (0 if (d_end > 0 and v_end < 3.0 and np.isfinite(a_end) and a_end < -0.5) else -1)
                 hist = tr["valid"][max(0, k - HIST + 1):k + 1].all() and k >= HIST - 1
-                # 2 s window in the chain frame
-                kk = np.clip(np.arange(k - HIST + 1, k + 1), 0, T - 1)
-                ss, lat, _ = project(p, s, tang, np.c_[tr["x"][kk], tr["y"][kk]])
-                a_seq = np.where(np.isfinite(tr["a"][kk]), tr["a"][kk], 0.0)
-                seqs.append(np.stack([-(s_stop - ss), lat, tr["v"][kk], a_seq], -1).astype(np.float32))
-                n_lead = sum(1 for c in cands[1:] if c[0] < d0)       # vehicles between leader and line (none by construction)
+                # features and 2 s window at each lead time (k + L); lead 0 first
+                ev_i = len(ev_rows)
+                for L in leads:
+                    kL = k + int(round(L / DT))
+                    if kL >= T or not tr["valid"][kL]:
+                        feat_rows.append(dict(ev=ev_i, lead_s=L, d=np.nan, v=np.nan, a=np.nan, a_raw=np.nan, t_r=np.nan, tt=np.nan, dreq=np.nan, crossed=np.nan,
+                                              lead_present=0, lead_gap=np.nan, lead_dv=np.nan, lane=0, clamped=1, ldr_id=-1, ldr_d=np.nan, ldr_gap=np.nan,
+                                              ldr_dv=np.nan, ldr_a=np.nan, ldr_label=np.nan, pad=HIST, lat=np.nan, n_lead=0))
+                        seqs.setdefault(L, []).append(np.zeros((HIST, 4), np.float32))
+                        continue
+                    kk = np.clip(np.arange(kL - HIST + 1, kL + 1), 0, T - 1)
+                    ss, lat, _ = project(p, s, tang, np.c_[tr["x"][kk], tr["y"][kk]])
+                    a_seq = np.where(np.isfinite(tr["a"][kk]), tr["a"][kk], 0.0)
+                    seqs.setdefault(L, []).append(np.stack([-(s_stop - ss), lat, tr["v"][kk], a_seq], -1).astype(np.float32))
+                    dL, vL = float(s_stop - ss[-1]), float(tr["v"][kL])
+                    aL = tr["a"][kL] if np.isfinite(tr["a"][kL]) else 0.0
+                    feat_rows.append(dict(ev=ev_i, lead_s=L, d=dL, v=vL, a=float(aL), a_raw=float(tr["a_raw"][kL]) if np.isfinite(tr["a_raw"][kL]) else np.nan,
+                                          t_r=(f_red - kL) * DT if np.isfinite(f_red) else np.nan, tt=dL / max(vL, 0.1), dreq=vL ** 2 / (2 * max(dL, 0.1)),
+                                          crossed=int(dL <= 0), lead_present=0, lead_gap=np.nan, lead_dv=np.nan, lane=0,
+                                          clamped=int(not (tr["valid"][max(0, kL - HIST + 1):kL + 1].all() and kL >= HIST - 1)), ldr_id=-1, ldr_d=np.nan,
+                                          ldr_gap=np.nan, ldr_dv=np.nan, ldr_a=np.nan, ldr_label=np.nan, pad=int(max(0, HIST - 1 - kL)), lat=float(lat[-1]),
+                                          n_lead=sum(1 for c in cands[1:] if c[0] < d0)))
                 ev_rows.append(dict(scenario=win["id"], windows=win["n_windows"], source=source, lane=lid, entry_lane=ent, k0=k, f_yellow=k, f_red=f_red,
                                     yellow_s=yellow_s, end_state=end_state, t_r_source=t_r_source, mi_red_s=(mi_red - k) * DT if np.isfinite(mi_red) else np.nan,
                                     arrow=bool(arrow), turn_deg=turn,
@@ -416,15 +435,10 @@ def extract_window(win, source, accel_rows):
                                     label=label, label_relaxed=label_relaxed, t_label=t_label, d_end=d_end, v_end=v_end, a_end=a_end, t_end=(jl - k) * DT,
                                     hist_ok=bool(hist), t_left=(T - 1 - k) * DT, stop_x=sp[0], stop_y=sp[1],
                                     n_on_chain=len(cands), approach_heading=float(np.degrees(np.arctan2(tang[-1][1], tang[-1][0])))))
-                a0 = tr["a"][k] if np.isfinite(tr["a"][k]) else 0.0
-                feat_rows.append(dict(ev=len(ev_rows) - 1, lead_s=0.0, d=d0, v=float(v0), a=float(a0), a_raw=float(tr["a_raw"][k]) if np.isfinite(tr["a_raw"][k]) else np.nan,
-                                      t_r=(f_red - k) * DT if np.isfinite(f_red) else np.nan, tt=tt, dreq=v0 ** 2 / (2 * max(d0, 0.1)),
-                                      lead_present=0, lead_gap=np.nan, lead_dv=np.nan, lane=0, clamped=int(not hist), ldr_id=-1, ldr_d=np.nan, ldr_gap=np.nan,
-                                      ldr_dv=np.nan, ldr_a=np.nan, ldr_label=np.nan, pad=int(max(0, HIST - 1 - k)), lat=float(lat0), n_lead=n_lead))
     return ev_rows, feat_rows, seqs
 
 
-def extract_shard(path, michigan_idx=None, stitch=True):
+def extract_shard(path, michigan_idx=None, stitch=True, leads=LEADS):
     """All windows of a shard -> (events df, features df, sequences (N,20,4), meta dict, accel df, stitch stats)."""
     scs = [parse(r) for r in records(path)]
     meta = dict(shard=os.path.basename(path), n_scenarios=len(scs), n_signal=sum(1 for s in scs if s["signals"]),
@@ -455,16 +469,17 @@ def extract_shard(path, michigan_idx=None, stitch=True):
     meta["n_groups"] = len(groups)
     meta["n_multi"] = sum(1 for g, _ in groups if len(g) > 1)
     meta["max_windows"] = max(len(g) for g, _ in groups)
-    E, F, S, A = [], [], [], []
+    E, F, S, A = [], [], {}, []
     for mem, offs in groups:
         win = merge_group(scs, mem, offs)
-        e, f, q = extract_window(win, "michigan_fill" if any(("signals_mi" in scs[m]) for m in mem) else "original", A)
+        e, f, q = extract_window(win, "michigan_fill" if any(("signals_mi" in scs[m]) for m in mem) else "original", A, leads)
         for r in f:
             r["ev"] += len(E)
         E += e
         F += f
-        S += q
+        for L in leads:
+            S.setdefault(L, []).extend(q.get(L, []))
     ev = pd.DataFrame(E)
     feat = pd.DataFrame(F)
-    seq = np.stack(S) if S else np.zeros((0, HIST, 4), np.float32)
+    seq = {L: (np.stack(S[L]) if S.get(L) else np.zeros((0, HIST, 4), np.float32)) for L in leads}
     return ev, feat, seq, meta, pd.DataFrame(A)

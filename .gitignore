@@ -29,3 +29,5 @@ results/sind/full/extract_errors.txt
 results/womd/**/*.log
 data/raw/womd/
 results/womd/**/*.log
+results/**/leadtime_dz/preds_*.csv
+results/**/leadtime_dz/run.log

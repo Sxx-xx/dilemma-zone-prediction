@@ -52,15 +52,15 @@ def _init(index_pkl):
 
 
 def extract_one(task):
-    path, split, out = task
+    path, split, out, leads = task
     womd = _G["womd"]
     name = os.path.basename(path)
     try:
-        ev, feat, seq, meta, acc = womd.extract_shard(path, _G["idx"], stitch=True)
+        ev, feat, seq, meta, acc = womd.extract_shard(path, _G["idx"], stitch=True, leads=leads)
         base = f"{out}/{split}/{name}"
         ev.to_csv(base + ".events.csv", index=False)
         feat.to_csv(base + ".feat.csv", index=False)
-        np.savez_compressed(base + ".seq.npz", seq=seq)
+        np.savez_compressed(base + ".seq.npz", **{f"lead{L:+.1f}": seq[L] for L in leads})
         meta["accel"] = dict(n=int(len(acc)), da_raw=float(acc["da_raw"].mean()) if len(acc) else None, da_smooth=float(acc["da_smooth"].mean()) if len(acc) else None,
                              da_raw_median=float(acc["da_raw"].median()) if len(acc) else None, da_smooth_median=float(acc["da_smooth"].median()) if len(acc) else None)
         meta["n_events"] = int(len(ev))
@@ -86,7 +86,11 @@ def main():
     ap.add_argument("--keep-free-gb", type=float, default=20.0)
     ap.add_argument("--max-inflight-gb", type=float, default=10.0)
     ap.add_argument("--limit", type=int, default=0, help="debug: only this many shards per split")
+    ap.add_argument("--leads", default="0", help="prediction times after yellow onset (s), e.g. 0,0.5,1,1.5,2")
     args = ap.parse_args()
+    leads = tuple(float(x) for x in args.leads.split(","))
+    if 0.0 not in leads:
+        leads = (0.0,) + leads
     os.makedirs(f"{args.out}/tmp", exist_ok=True)
     state_p = f"{args.out}/state.json"
     state = json.load(open(state_p)) if os.path.exists(state_p) else {"done": [], "failed": {}}
@@ -175,7 +179,7 @@ def main():
                     if all(not t.is_alive() for t in threads) and ready.empty():
                         break
                     continue
-                results.append(pool.apply_async(extract_one, ((local, split, args.out),)))
+                results.append(pool.apply_async(extract_one, ((local, split, args.out, leads),)))
                 submitted += 1
                 # reap finished
                 for r in [r for r in results if r.ready()]:

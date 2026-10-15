@@ -43,7 +43,8 @@ def main():
             if len(ev) == 0:
                 continue
             feat = pd.read_csv(base + ".feat.csv")
-            seq = np.load(base + ".seq.npz")["seq"]
+            z = np.load(base + ".seq.npz")
+            seq = {k: z[k] for k in z.files} if "seq" not in z.files else {"lead+0.0": z["seq"]}
             ev["split"], ev["shard"] = split, os.path.basename(base)
             feat["ev"] += sum(len(e) for e in E)
             E.append(ev)
@@ -51,7 +52,8 @@ def main():
             S.append(seq)
     ev = pd.concat(E, ignore_index=True)
     feat = pd.concat(F, ignore_index=True)
-    seq = np.concatenate(S)
+    lead_keys = list(S[0].keys())
+    seq = {k: np.concatenate([q[k] for q in S]) for k in lead_keys}
     meta = pd.DataFrame(M)
     # intersections from stop points
     xy = ev[["stop_x", "stop_y"]].values
@@ -65,7 +67,8 @@ def main():
     ev["segment"] = ev["scenario"]
     ev["cycle"] = ev["scenario"].astype(str) + ":" + ev["k0"].astype(str)
     ev["approach"] = ev["intersection"] + "/" + ev["approach_id"].astype(str)
-    tt = feat.set_index("ev")["tt"].reindex(np.arange(len(ev))).values
+    f0 = feat[feat["lead_s"] == 0.0]
+    tt = f0.set_index("ev")["tt"].reindex(np.arange(len(ev))).values
     ev["tt"] = tt
     sel = (ev["movement"] == "through") & ~ev["arrow"].astype(bool) & (ev["label"] >= 0) & ev["hist_ok"].astype(bool) & (tt <= TT_MAX) & ev["f_red"].notna()
     ev["selected"] = sel
@@ -76,10 +79,10 @@ def main():
     fs["ev"] = fs["ev"].map({o: i for i, o in enumerate(keep)})
     evs.to_csv(f"{args.tables}/events_through.csv", index=False)
     fs.to_csv(f"{args.tables}/features_through.csv", index=False)
-    np.savez_compressed(f"{args.tables}/sequences_through.npz", **{"lead+0.0": seq[keep]})
+    np.savez_compressed(f"{args.tables}/sequences_through.npz", **{k: v[keep] for k, v in seq.items()})
     # summary
     band = (evs["tt"] >= DZ_LO) & (evs["tt"] <= DZ_HI)
-    v0 = fs.set_index("ev")["v"].reindex(np.arange(len(evs))).values
+    v0 = fs[fs["lead_s"] == 0.0].set_index("ev")["v"].reindex(np.arange(len(evs))).values
     per_int = evs.groupby("intersection")["label"].agg(n="size", go="sum")
     thr = ev[(ev["movement"] == "through") & ~ev["arrow"].astype(bool)]
     summ = dict(

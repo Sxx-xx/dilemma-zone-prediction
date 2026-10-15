@@ -1,0 +1,5 @@
+model,first_lead_ge_0_8
+band_logreg_dva,1.5
+lstm_dva,1.5
+mlp_dva,1.5
+ruleA_calibrated,
