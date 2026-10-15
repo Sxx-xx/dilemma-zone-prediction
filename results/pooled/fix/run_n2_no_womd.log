@@ -1,0 +1,23 @@
+band 550 (go 144)
+inner 1/120
+inner 21/120
+inner 41/120
+inner 61/120
+inner 81/120
+inner 101/120
+          model                                          policy  macro_f1  macro_f1_lo  macro_f1_hi  d_macro_f1_vs_2s  d_macro_f1_vs_2s_lo  d_macro_f1_vs_2s_hi  risky  conservative  t_mean  t_median
+        mlp_dva                              theta=0.05 (fixed)     0.880        0.844        0.911             0.002               -0.010                0.015  0.030         0.250   1.445       1.5
+        mlp_dva                                       theta=0.1     0.863        0.825        0.894            -0.015               -0.037                0.004  0.030         0.292   0.996       1.0
+        mlp_dva theta=train-selected (risky<=0.10 & cons<=0.20)     0.880        0.844        0.911             0.002               -0.010                0.015  0.030         0.250   1.445       1.5
+        mlp_dva                                        all@2.0s     0.878        0.844        0.909             0.000                0.000                0.000  0.032         0.250   2.000       2.0
+band_logreg_dva                              theta=0.05 (fixed)     0.857        0.824        0.888             0.004               -0.006                0.014  0.096         0.167   1.813       2.0
+band_logreg_dva                                       theta=0.1     0.847        0.814        0.879            -0.006               -0.019                0.006  0.108         0.167   1.591       2.0
+band_logreg_dva theta=train-selected (risky<=0.10 & cons<=0.20)     0.857        0.824        0.888             0.004               -0.006                0.014  0.096         0.167   1.813       2.0
+band_logreg_dva                                        all@2.0s     0.853        0.821        0.885             0.000                0.000                0.000  0.101         0.167   2.000       2.0
+          model theta_counts  fallback_folds
+        mlp_dva      0.05x24            24.0
+band_logreg_dva      0.05x24             6.0
+          model    staged  staged_t_mean  matched_lead_s  staged_macro_f1  matched_macro_f1  diff  ci_lo  ci_hi   n
+        mlp_dva theta=0.1          0.996             1.0            0.863             0.723 0.141  0.101  0.183 550
+band_logreg_dva theta=0.1          1.591             1.5            0.847             0.831 0.015 -0.019  0.052 550
+N2DONE 0

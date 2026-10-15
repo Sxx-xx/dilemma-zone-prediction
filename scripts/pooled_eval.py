@@ -341,8 +341,9 @@ def models(args):
     for L in LEADS:
         for s in sorted(ev["site_id"].unique()):
             tasks.append(("loio", s, L, args.n_seeds))
-        for d in DATASETS:
-            tasks.append(("lodo", d, L, args.n_seeds))
+        if "lodo" in args.schemes.split(","):
+            for d in sorted(ev["dataset"].unique()):
+                tasks.append(("lodo", d, L, args.n_seeds))
     tasks.sort(key=lambda t: -(ev["site_id"] == t[1]).sum() if t[0] == "loio" else -1e9)  # big folds first
     done = {}
     t0 = time.time()
@@ -510,6 +511,7 @@ def main():
     ap.add_argument("--threads", type=int, default=2)
     ap.add_argument("--n-seeds", type=int, default=3)
     ap.add_argument("--n-boot", type=int, default=1000)
+    ap.add_argument("--schemes", default="loio,lodo", help="models task: loio and/or lodo")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     for t in args.tasks.split(","):

@@ -31,4 +31,4 @@ data/raw/womd/
 results/womd/**/*.log
 results/**/leadtime_dz/preds_*.csv
 results/**/leadtime_dz/run.log
-results/*/staged/inner_preds.csv.gz
+results/**/inner_preds.csv.gz
