@@ -1191,7 +1191,7 @@ AUROC(전체): 규칙 A 0.914, 규칙 B 0.933, LR(d, v, a) 0.943, LR(d, v) 0.938
   - `P3_leave_one_dataset_out.csv`
   - `P_mlp_vs_calibrated_ruleA.csv`
   - `P_compare_with_per_dataset.csv`
-  - 그림: `fig_p_leadtime_band.png`(= `results/figures/fig_p_pooled_leadtime_band.png`), 데이터 `results/figures/data/fig_p_pooled_leadtime_band.csv`
+  - 그림: `results/figures/fig_p_pooled_leadtime_band.png`, 데이터 `results/figures/data/fig_p_pooled_leadtime_band.csv`
 - gitignore: 통합 테이블과 이벤트별 예측은 `data/raw/pooled/table/`, SinD 리드타임 재추출은 `data/raw/pooled/sind_leads/`에 있다.
 - 입력은 기존 선두 테이블이다.
   - V2X-Seq: `leaders_v4_leads`

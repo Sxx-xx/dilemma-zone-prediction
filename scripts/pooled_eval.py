@@ -14,6 +14,9 @@ Tasks (--tasks, comma list, in this order):
   models     : stage 2 (all four): (a) pooled LOIO over site_id (WOMD: its group 10-fold), (b) leave-one-dataset-out;
                per lead: rule A (recorded t_r), calibrated rule A (t_50(L) from the training folds), LR(d,v,a),
                band-only LR(d,v,a), MLP(d,v,a), LSTM(d,v,a); out-of-fold predictions under --table/preds_*.
+  no-womd    : P-fix helper: copy of --table without the WOMD events, written to <--table>_no_womd (event ids
+               renumbered; features and sequences subset to match). Models on it: --tasks models --schemes loio
+               --table <--table>_no_womd --out results/pooled/fix.
   report     : P2 / P3 tables (macro-F1 all and band, AUROC, Brier; cycle-bootstrap CIs; pooled + per dataset), MLP vs
                calibrated rule A per lead with an event bootstrap, comparison with the per-dataset results (|diff| >=
                0.02 flagged), figure (band macro-F1 vs lead, pooled + per dataset).
@@ -497,9 +500,23 @@ def figure(args, lo):
     fig.legend(h, l, loc="lower center", ncol=5, fontsize=8, frameon=False)
     fig.tight_layout(rect=(0, 0.08, 1, 1))
     os.makedirs("results/figures/data", exist_ok=True)
-    fig.savefig(f"{args.out}/fig_p_leadtime_band.png", dpi=300)
     fig.savefig("results/figures/fig_p_pooled_leadtime_band.png", dpi=300)
     q.to_csv("results/figures/data/fig_p_pooled_leadtime_band.csv", index=False)
+
+
+def no_womd(args):
+    src, dst = args.table, f"{args.table.rstrip('/')}_no_womd"
+    os.makedirs(dst, exist_ok=True)
+    ev = pd.read_csv(f"{src}/events_through.csv")
+    f = pd.read_csv(f"{src}/features_through.csv")
+    z = np.load(f"{src}/sequences_through.npz")
+    keep = np.where(ev.dataset != "womd")[0]
+    ev.iloc[keep].reset_index(drop=True).to_csv(f"{dst}/events_through.csv", index=False)
+    f = f[f.ev.isin(keep)].copy()
+    f["ev"] = f["ev"].map({o: i for i, o in enumerate(keep)})
+    f.to_csv(f"{dst}/features_through.csv", index=False)
+    np.savez_compressed(f"{dst}/sequences_through.npz", **{k: z[k][keep] for k in z.files})
+    print(f"{dst}: {len(keep)} events", flush=True)
 
 
 def main():
@@ -516,7 +533,8 @@ def main():
     os.makedirs(args.out, exist_ok=True)
     for t in args.tasks.split(","):
         print(f"== {t}", flush=True)
-        {"sind-leads": sind_leads, "table": build_table, "boundary": boundary, "models": models, "report": report}[t](args)
+        {"sind-leads": sind_leads, "table": build_table, "boundary": boundary, "models": models, "no-womd": no_womd,
+         "report": report}[t](args)
 
 
 if __name__ == "__main__":

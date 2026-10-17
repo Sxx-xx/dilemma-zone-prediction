@@ -32,3 +32,17 @@ results/womd/**/*.log
 results/**/leadtime_dz/preds_*.csv
 results/**/leadtime_dz/run.log
 results/**/inner_preds.csv.gz
+
+# per-event summary tables derived from licensed data (regenerate from raw data; NGSIM events stay tracked)
+results/v2xseq/review/events_audit.csv
+results/v2xseq/review/sample_audit.csv
+results/v2xseq/review/ambiguous_go.csv
+results/sind/events.csv
+results/womd/w0/events.csv
+results/womd/w0/onsets.csv
+results/womd/w0/yellow_durations.csv
+results/womd/w0/accel_quality.csv
+results/womd/w0/stop_point_check.csv
+
+# run logs (tables are committed as CSV)
+results/**/*.log
