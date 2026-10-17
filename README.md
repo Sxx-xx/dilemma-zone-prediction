@@ -268,13 +268,8 @@ FI="--dataset fluid --root data/raw/fluid/FI/derived_data --site FI \
 .venv/bin/python scripts/v2xseq_review.py --root data/raw/v2xseq/full/extracted/V2X-Seq-TFD \
     --check data/raw/v2xseq/results/check_v4 --out results/v2xseq/review --shift-table results/v2xseq/stopline_shift.csv \
     --table --audit-all --sample 20 --seed 0
-# V2X-Seq: results/v2xseq/review/ambiguous_go.csv (통과 라벨 중 황색 후 최저 속도 < 1 m/s이고 정지선을 6 m 안에서 넘은 이벤트)
-.venv/bin/python - <<'PY'
-import pandas as pd
-A = pd.read_csv("results/v2xseq/review/events_audit.csv"); go = A[A.label == 1]
-sus = go[(go.min_v_after < 1.0) & (go.min_d_after > -6)][["group", "track_id"]].rename(columns={"group": "segment"})
-sus["track_id"] = sus.track_id.astype(int); sus.to_csv("results/v2xseq/review/ambiguous_go.csv", index=False)
-PY
+# V2X-Seq: results/v2xseq/review/ambiguous_go.csv
+.venv/bin/python scripts/v2xseq_ambiguous_go.py
 # SinD 공개 샘플: results/sind/events.csv
 .venv/bin/python scripts/run_sind.py
 # WOMD W0: results/womd/w0/{events,onsets,yellow_durations,accel_quality,stop_point_check}.csv
